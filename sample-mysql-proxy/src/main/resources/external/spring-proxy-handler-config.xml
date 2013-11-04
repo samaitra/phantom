@@ -8,11 +8,20 @@
     http://www.springframework.org/schema/context classpath:org/springframework/context/config/spring-context-2.5.xsd">
 
     <!-- mysql proxy -->
-    <bean id="sampleMysqlProxy" class="com.flipkart.phantom.mysql.impl.proxy.DefaultMysqlProxy">
+    <bean id="sampleMysqlProxy" class="com.flipkart.phantom.mysql.impl.SimpleMysqlProxy">
         <property name="name" value="defaultProxy" />
-        <property name="mysqlServer" value="localhost" />
-        <property name="mysqlPort" value="3306" />
-        <property name="mysqlTimeoutMillis" value="1000" />
+        <property name="pool" ref="sampleConnectionPool" />
 
+    </bean>
+
+    <!-- mysql connection pool -->
+    <bean id="sampleConnectionPool" class="com.flipkart.phantom.mysql.impl.MysqlConnectionPool">
+        <property name="host" value="localhost" />
+        <property name="port" value="3306" />
+        <property name="dbname" value="automation" />
+        <property name="username" value="root" />
+        <property name="password" value="" />
+        <property name="connectionTimeout" value="10000" />
+        <property name="operationTimeout" value="2000" />
     </bean>
 </beans>
