@@ -1,13 +1,17 @@
 package com.flipkart.phantom.mysql.impl;
 
-import com.mysql.jdbc.PreparedStatement;
+import com.flipkart.phantom.mysql.impl.protocol.Packet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Socket;
 import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.concurrent.Semaphore;
 
 /**
@@ -17,24 +21,24 @@ import java.util.concurrent.Semaphore;
  * Time: 10:41 AM
  * To change this template use File | Settings | File Templates.
  */
-public class MysqlConnectionPool {
+public class MysqlDriver {
 
-    private static Logger logger = LoggerFactory.getLogger(MysqlConnectionPool.class);
+    private static Logger logger = LoggerFactory.getLogger(MysqlDriver.class);
 
     /** The Java Sql Connection */
     private Connection conn;
 
     /** Host to connect to */
-    private String host = "localhost";
+    public String host = "localhost";
 
     /** port to connect to */
-    private Integer port = 3306;
+    public int port = 3306;
 
     /** The database url */
     private String dbUrl;
 
     /** The database name */
-    private String dbname = "automation";
+    private String dbname = "test";
 
     /** The database username */
     private String username = "root";
@@ -57,57 +61,66 @@ public class MysqlConnectionPool {
     /** the semaphore to separate the process queue */
     private Semaphore processQueue;
 
+    /** mysql socket to connect mysql server */
+    public Socket mysqlSocket = null;
+
+    /** mysql socket input stream */
+
+    public InputStream mysqlIn = null;
+
+    /** mysql socket output stream */
+
+    public OutputStream mysqlOut = null;
     /**
-     * Initialize the connection pool
+     * Initialize the connection
      */
-    public void initConnectionPool() {
-
-        this.dbUrl = "jdbc:mysql://" + host + ":" + port + "/" + dbname + "?autoReconnect=true";
-
+    public void initConnection() throws Exception{
 
         try {
-            Class.forName("com.mysql.jdbc.Driver").newInstance();
-            this.conn = DriverManager.getConnection(dbUrl, username, password);
 
+            this.mysqlSocket = new Socket(this.host, this.port);
+            this.mysqlSocket.setPerformancePreferences(0, 2, 1);
+            this.mysqlSocket.setTcpNoDelay(true);
+            this.mysqlSocket.setTrafficClass(0x10);
+            this.mysqlSocket.setKeepAlive(true);
+
+            logger.debug("Connected to mysql server at "+this.host+":"+this.port);
+            this.mysqlIn = new BufferedInputStream(this.mysqlSocket.getInputStream(), 16384);
+            this.mysqlOut = this.mysqlSocket.getOutputStream();
 
         } catch (Exception e) {
-            System.out.println("Could not connect to database.");
-            e.printStackTrace();
-
+            throw e;
         }
     }
+
+
+
 
     /**
      * Method to execute a request
      * @return response ResultSet object
      */
-    public ResultSet execute(String query) throws Exception {
-        logger.debug("Sending request: "+query);
-        if (processQueue.tryAcquire()) {
-            ResultSet response;
-            try {
-                PreparedStatement ps = (PreparedStatement) conn.prepareStatement(query);
-
-                response = ps.executeQuery(query);
-            } catch (Exception e) {
-                processQueue.release();
-                throw e;
+    public InputStream execute(String uri,ArrayList<byte[]> buffer) throws Exception {
+            if(uri.equals("init")){
+               initConnection();
+            }if(uri.equals("clientAuth")){
+                Packet.write(this.mysqlOut, buffer);
+            }if(uri.equals("sendQuery")){
+                Packet.write(this.mysqlOut, buffer);
             }
-            processQueue.release();
-            return response;
-        } else {
-            throw new Exception("Process queue full!");
+            return this.mysqlIn;
         }
-    }
 
-
-    /** shutdown the client connections */
+    /** shutdown the socket connections */
     public void shutdown() {
-        try {
-            conn.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
+        if (this.mysqlSocket == null) {
+            return;
         }
+
+        try {
+            this.mysqlSocket.close();
+        }
+        catch(IOException e) {}
     }
 
     /** Getters / Setters */

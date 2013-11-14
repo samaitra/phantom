@@ -34,7 +34,7 @@ public class MysqlProxyExecutorRepository implements ExecutorRepository {
         if (proxy.isActive()) {
             return new MysqlProxyExecutor(proxy, this.taskContext, requestWrapper);
         }
-        throw new RuntimeException("The HttpProxy is not active.");
+        throw new RuntimeException("The MysqlProxy is not active.");
     }
 
     /** Getter/Setter methods */

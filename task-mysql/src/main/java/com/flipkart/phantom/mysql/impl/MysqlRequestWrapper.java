@@ -2,6 +2,7 @@ package com.flipkart.phantom.mysql.impl;
 
 import com.flipkart.phantom.task.spi.RequestWrapper;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -14,22 +15,14 @@ import java.util.Map;
  */
 public class MysqlRequestWrapper implements RequestWrapper{
 
-    /** Data */
-    private byte[] data;
-
     /** uri */
     private String uri;
 
+
+    /** Buffer */
+    private ArrayList<byte[]> buffer;
+
     /** Start Getter/Setter methods */
-
-    public byte[] getData(){
-        return data;
-    }
-
-    public void setData(byte[] data){
-        this.data = data;
-    }
-
 
     public String getUri(){
         return uri;
@@ -37,6 +30,14 @@ public class MysqlRequestWrapper implements RequestWrapper{
 
     public void setUri(String uri){
         this.uri = uri;
+    }
+
+    public ArrayList<byte[]> getBuffer() {
+        return buffer;
+    }
+
+    public void setBuffer(ArrayList<byte[]> buffer) {
+        this.buffer = buffer;
     }
 
 /**End Getter/Setter methods */

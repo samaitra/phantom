@@ -3,7 +3,8 @@ package com.flipkart.phantom.mysql.impl;
 import com.flipkart.phantom.task.spi.AbstractHandler;
 import com.flipkart.phantom.task.spi.TaskContext;
 
-import java.sql.ResultSet;
+import java.io.InputStream;
+import java.util.ArrayList;
 
 /**
  * Created with IntelliJ IDEA.
@@ -19,8 +20,8 @@ public abstract class MysqlProxy extends AbstractHandler{
     /** Name of the proxy */
     private String name;
 
-    /** The connection pool implementation instance */
-    private MysqlConnectionPool pool;
+    /** The Mysql Driver implementation instance */
+    private MysqlDriver driver;
 
     /** The thread pool size for this proxy*/
     private int threadPoolSize = MysqlProxy.DEFAULT_THREAD_POOL_SIZE;
@@ -29,10 +30,10 @@ public abstract class MysqlProxy extends AbstractHandler{
      *  Init hook provided by the MysqlProxy
      */
     public void init(TaskContext context) throws Exception {
-        if (pool == null) {
-            throw new AssertionError("MysqlConnectionPool object 'pool' must be given");
+        if (driver == null) {
+            throw new AssertionError("MysqlDriver object must be given");
         } else {
-            pool.initConnectionPool();
+            driver.initConnection();
         }
     }
 
@@ -40,23 +41,23 @@ public abstract class MysqlProxy extends AbstractHandler{
      * Shutdown hooks provided by the MysqlProxy
      */
     public void shutdown(TaskContext context) throws Exception {
-        pool.shutdown();
+        driver.shutdown();
     }
 
     /**
      * The main method which makes the Mysql request
      */
-    public ResultSet doRequest(String uri, byte[] data) throws Exception {
-        return pool.execute(uri);
+    public InputStream doRequest(String uri,ArrayList<byte[]> buffer) throws Exception {
+
+        return driver.execute(uri,buffer);
     }
 
     /**
      * Abstract fallback request method
      * @param uri String Mysql request URI
-     * @param data byte[] Mysql request payload
      * @return ResultSet response after executing the fallback
      */
-    public abstract ResultSet fallbackRequest(String uri, byte[] data);
+    public abstract InputStream fallbackRequest(String uri, ArrayList<byte[]> buffer);
 
     /**
      * Abstract method which gives group key
@@ -89,13 +90,13 @@ public abstract class MysqlProxy extends AbstractHandler{
      * @see com.flipkart.phantom.task.spi.AbstractHandler#getDetails()
      */
     public String getDetails() {
-        if (pool != null) {
+        if (driver != null) {
             String details = "Endpoint: ";
-            details += "jdbc:mysql://" + pool.getHost() + ":" + pool.getPort() + "\n";
-            details += "Connection Timeout: " + pool.getConnectionTimeout() + "ms\n";
-            details += "Operation Timeout: " + pool.getOperationTimeout() + "ms\n";
-            details += "Max Connections: " + pool.getMaxConnections() + "\n";
-            details += "Request Queue Size: " + pool.getRequestQueueSize() + "\n";
+            details += "jdbc:mysql://" + driver.getHost() + ":" + driver.getPort() + "\n";
+            details += "Connection Timeout: " + driver.getConnectionTimeout() + "ms\n";
+            details += "Operation Timeout: " + driver.getOperationTimeout() + "ms\n";
+            details += "Max Connections: " + driver.getMaxConnections() + "\n";
+            details += "Request Queue Size: " + driver.getRequestQueueSize() + "\n";
             return details;
         }
         return "No endpoint configured";
@@ -117,11 +118,11 @@ public abstract class MysqlProxy extends AbstractHandler{
     public String getName() {
         return this.name;
     }
-    public MysqlConnectionPool getPool() {
-        return pool;
+    public MysqlDriver getDriver() {
+        return this.driver;
     }
-    public void setPool(MysqlConnectionPool pool) {
-        this.pool = pool;
+    public void setDriver(MysqlDriver pool) {
+        this.driver = pool;
     }
     public void setThreadPoolSize(int threadPoolSize) {
         this.threadPoolSize = threadPoolSize;

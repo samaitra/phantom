@@ -42,7 +42,7 @@
                     </archive>
                     <includes>
                         <include>packaged/**/*</include>
-                        <include>com/**/*</include>
+                        <include>mysql/**/*</include>
                     </includes>
                 </configuration>
             </plugin>

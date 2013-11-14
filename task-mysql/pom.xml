@@ -31,6 +31,12 @@
             <version>1.6.4</version>
         </dependency>
         <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.17</version>
+        </dependency>
+
+        <dependency>
             <groupId>com.flipkart.phantom</groupId>
             <artifactId>task</artifactId>
             <version>1.1.7</version>
@@ -50,6 +56,12 @@
             <artifactId>mysql-connector-java</artifactId>
             <version>5.1.26</version>
         </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty</artifactId>
+            <version>${netty.version}</version>
+        </dependency>
+
     </dependencies>
 
     <build>

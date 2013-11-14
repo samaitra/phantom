@@ -5,7 +5,9 @@ import com.flipkart.phantom.task.spi.RequestWrapper;
 import com.flipkart.phantom.task.spi.TaskContext;
 import com.netflix.hystrix.*;
 
+import java.io.InputStream;
 import java.sql.ResultSet;
+import java.util.ArrayList;
 
 /**
  * Created with IntelliJ IDEA.
@@ -14,7 +16,7 @@ import java.sql.ResultSet;
  * Time: 5:40 PM
  * To change this template use File | Settings | File Templates.
  */
-public class MysqlProxyExecutor extends HystrixCommand<ResultSet> implements Executor {
+public class MysqlProxyExecutor extends HystrixCommand<InputStream> implements Executor {
 
 
     /** uri */
@@ -22,6 +24,8 @@ public class MysqlProxyExecutor extends HystrixCommand<ResultSet> implements Exe
 
     /** data */
     byte[] data;
+
+    ArrayList<byte[]> buffer;
 
     /** the proxy client */
     private MysqlProxy proxy;
@@ -36,7 +40,7 @@ public class MysqlProxyExecutor extends HystrixCommand<ResultSet> implements Exe
                         .andCommandKey(HystrixCommandKey.Factory.asKey(proxy.getCommandKey()))
                         .andThreadPoolKey(HystrixThreadPoolKey.Factory.asKey(proxy.getThreadPoolKey()))
                         .andThreadPoolPropertiesDefaults(HystrixThreadPoolProperties.Setter().withCoreSize(proxy.getThreadPoolSize()))
-                        .andCommandPropertiesDefaults(HystrixCommandProperties.Setter().withExecutionIsolationThreadTimeoutInMilliseconds(proxy.getPool().getOperationTimeout()))
+                        .andCommandPropertiesDefaults(HystrixCommandProperties.Setter().withExecutionIsolationThreadTimeoutInMilliseconds(proxy.getDriver().getOperationTimeout()))
         );
 
         this.proxy = proxy;
@@ -47,17 +51,16 @@ public class MysqlProxyExecutor extends HystrixCommand<ResultSet> implements Exe
 
         /** get necessary data required for the output */
         this.uri = mysqlRequestWrapper.getUri();
-        this.data = mysqlRequestWrapper.getData();
+        this.buffer = mysqlRequestWrapper.getBuffer();
     }
-
     /**
      * Interface method implementation
      * @return response ResultSet for the give request
      * @throws Exception
      */
     @Override
-    protected ResultSet run() throws Exception {
-        return proxy.doRequest(uri,data);
+    protected InputStream run() throws Exception {
+        return proxy.doRequest(uri,buffer);
     }
 
     /**
@@ -66,8 +69,8 @@ public class MysqlProxyExecutor extends HystrixCommand<ResultSet> implements Exe
      * @throws Exception
      */
     @Override
-    protected ResultSet getFallback() {
-        return proxy.fallbackRequest(uri,data);
+    protected InputStream getFallback() {
+        return proxy.fallbackRequest(uri,buffer);
     }
 
     /** Getter/Setter methods */

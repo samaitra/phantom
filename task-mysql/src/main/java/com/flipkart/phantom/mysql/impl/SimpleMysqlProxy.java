@@ -1,6 +1,8 @@
 package com.flipkart.phantom.mysql.impl;
 
+import java.io.InputStream;
 import java.sql.ResultSet;
+import java.util.ArrayList;
 
 /**
  * Created with IntelliJ IDEA.
@@ -13,10 +15,10 @@ public class SimpleMysqlProxy extends MysqlProxy {
 
     /**
      * Abstract method implementation
-     * @see com.flipkart.phantom.mysql.impl.MysqlProxy#fallbackRequest(String, byte[])
+     * @see com.flipkart.phantom.mysql.impl.MysqlProxy#fallbackRequest(String,ArrayList<byte[]>)
      */
     @Override
-    public ResultSet fallbackRequest(String uri, byte[] data) {
+    public InputStream fallbackRequest(String uri, ArrayList<byte[]> buffer) {
         return null;
     }
 
