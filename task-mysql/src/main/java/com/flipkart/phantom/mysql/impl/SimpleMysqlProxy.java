@@ -5,11 +5,11 @@ import java.sql.ResultSet;
 import java.util.ArrayList;
 
 /**
- * Created with IntelliJ IDEA.
- * User: saikat
- * Date: 03/11/13
- * Time: 9:03 PM
- * To change this template use File | Settings | File Templates.
+ * A simple implementation for the MysqlProxy abstract class
+ * @author : samaitra
+ * @version : 1.0
+ * @date : 15/11/13
+ *
  */
 public class SimpleMysqlProxy extends MysqlProxy {
 

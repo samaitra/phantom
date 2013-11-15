@@ -11,16 +11,15 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.concurrent.Semaphore;
 
 /**
- * Created with IntelliJ IDEA.
- * User: saikat
- * Date: 04/11/13
- * Time: 10:41 AM
- * To change this template use File | Settings | File Templates.
+ * <code>MysqlDriver</code> does the mysql connection management for Mysql proxy requests and writes mysql requests to Mysql server socket.
+ *
+ * @author : samaitra
+ * @version : 1.0
+ * @date : 15/11/13
  */
 public class MysqlDriver {
 
@@ -73,7 +72,7 @@ public class MysqlDriver {
 
     public OutputStream mysqlOut = null;
     /**
-     * Initialize the connection
+     * Initialize mysql socket connection
      */
     public void initConnection() throws Exception{
 

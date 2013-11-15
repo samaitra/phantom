@@ -12,11 +12,12 @@ import org.trpr.platform.core.spi.logging.Logger;
 import java.util.*;
 
 /**
- * Created with IntelliJ IDEA.
- * User: saikat
- * Date: 31/10/13
- * Time: 5:41 PM
- * To change this template use File | Settings | File Templates.
+ *
+ * Implementation of {@link AbstractHandlerRegistry} for MysqlProxy instances
+ *
+ * @author : samaitra
+ * @version : 1.0
+ * @date : 15/11/13
  */
 public class MysqlProxyRegistry implements AbstractHandlerRegistry {
 

@@ -7,11 +7,11 @@ import java.io.InputStream;
 import java.util.ArrayList;
 
 /**
- * Created with IntelliJ IDEA.
- * User: saikat
- * Date: 31/10/13
- * Time: 5:39 PM
- * To change this template use File | Settings | File Templates.
+ * Abstract class for handling Mysql proxy requests
+ *
+ * @author : samaitra
+ * @version : 1.0
+ * @date : 15/11/13
  */
 public abstract class MysqlProxy extends AbstractHandler{
     /** The default thread pool size*/

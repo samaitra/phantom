@@ -12,21 +12,14 @@ import java.io.InputStream;
 import java.util.ArrayList;
 
 /**
- * Created with IntelliJ IDEA.
- * User: saikat
- * Date: 31/10/13
- * Time: 12:51 PM
- * To change this template use File | Settings | File Templates.
- */
-
-/**
  * <code>MysqlPacketDecoder</code> is an extension of the Netty {@link org.jboss.netty.handler.codec.frame.FrameDecoder} that ensures that all mysql protocol bytes have been received
  * before the {@link org.jboss.netty.channel.MessageEvent} is constructed for use by other upstream channel handlers.
  *  This decoder attempts to read the Mysql message from the transport using the protocol. An unsuccessful read indicates that the bytes have not been fully
  * received. This decoder returns a null object in {@link #decode(ChannelHandlerContext, Channel, ChannelBuffer)} in such scenarios and the Netty
  * framework would then call it again when more bytes are received, eventually resulting in all required bytes becoming available.
- * @author Saikat Maitra
- * @version 1.0, 15 November, 2013
+ * @author : samaitra
+ * @version : 1.0
+ * @date : 15/11/13
  */
 public class MysqlPacketDecoder extends FrameDecoder {
 

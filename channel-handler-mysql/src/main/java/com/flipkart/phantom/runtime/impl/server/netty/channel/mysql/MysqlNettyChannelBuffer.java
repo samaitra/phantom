@@ -14,17 +14,23 @@ import java.io.InputStream;
 import java.util.ArrayList;
 
 /**
- * Created with IntelliJ IDEA.
- * User: saikat
- * Date: 15/11/13
- * Time: 5:56 PM
- * To change this template use File | Settings | File Templates.
+ * <code>MysqlNettyChannelBuffer</code> is a Mysql transport based on JBoss Netty's ChannelBuffers
+ *
+ * @author : samaitra
+ * @version : 1.0
+ * @date : 15/11/13
  */
 public class MysqlNettyChannelBuffer extends Packet{
+
     @Override
     public ArrayList<byte[]> getPayload() {
         return null;
     }
+
+    /**
+     *  read complete result set from mysql server all the input bytes
+     */
+
 
     public static ArrayList<byte[]> readFullResultSet(InputStream in, MessageEvent messageEvent, ArrayList<byte[]> buffer, boolean bufferResultSet) throws IOException {
         // Assume we have the start of a result set already
@@ -104,6 +110,10 @@ public class MysqlNettyChannelBuffer extends Packet{
         }
         return buffer;
     }
+    /**
+     *  Writes all the output bytes into the output ChannelBuffer
+     *
+     */
 
     public static void write(MessageEvent messageEvent, ArrayList<byte[]> buffer) {
 
@@ -113,6 +123,11 @@ public class MysqlNettyChannelBuffer extends Packet{
 
         }
     }
+
+    /**
+     *  Writes all the output bytes into the output ChannelBuffer
+     *
+     */
 
     public static void write(ChannelEvent event, ArrayList<byte[]> buffer) {
 

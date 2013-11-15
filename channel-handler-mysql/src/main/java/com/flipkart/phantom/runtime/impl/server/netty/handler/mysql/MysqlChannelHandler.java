@@ -21,11 +21,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Created with IntelliJ IDEA.
- * User: saikat
- * Date: 31/10/13
- * Time: 12:51 PM
- * To change this template use File | Settings | File Templates.
+ * <code>MysqlChannelHandler</code> is a sub-type of {@link SimpleChannelHandler} that acts as a proxy for Mysql calls using the mysql protocol.
+ * It wraps the Mysql call using a {@link MysqlProxyExecutor} that provides useful features like monitoring, fallback etc.
+ *
+ * @author : samaitra
+ * @version : 1.0
+ * @date : 15/11/13
  */
 public class MysqlChannelHandler extends SimpleChannelHandler implements InitializingBean {
 
@@ -117,9 +118,8 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
 
         String proxy = this.proxyMap.get(MysqlChannelHandler.ALL_ROUTES);
         Executor executor = this.repository.getExecutor(proxy,proxy,executorMysqlRequest);
-        InputStream in = null;
         try{
-            in = (InputStream) executor.execute();
+            this.in = (InputStream) executor.execute();
         }catch (Exception e){
             throw new RuntimeException("Error in reading server handshake message :" + proxy + ".", e);
         }finally {
@@ -129,7 +129,7 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
             eventProducer.publishEvent(executor, "init", eventSource, Mysql_HANDLER);
         }
 
-        return in;
+        return this.in;
     }
 
     private void writeServerHandshake(ChannelHandlerContext ctx, ChannelEvent event, InputStream in) throws Exception {
@@ -215,9 +215,7 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
         this.buffer = new ArrayList<byte[]>();
         this.buffer = (ArrayList<byte[]>) messageEvent.getMessage();
         byte[] packet = this.buffer.get(0);
-
         this.sequenceId = Packet.getSequenceId(packet);
-//          LOGGER.debug("Client sequenceId: " + this.sequenceId);
 
         switch (Packet.getType(packet)) {
             case Flags.COM_QUIT:
@@ -243,8 +241,13 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
 
         }
 
-        this.in = execute(ctx,Flags.MODE_SEND_QUERY,this.buffer);
-        writeQueryResponse(ctx,messageEvent,this.in);
+        //No need to write response if Command request packet is for Quit
+        if(Packet.getType(packet)==Flags.COM_QUIT){
+            execute(ctx,Flags.MODE_SEND_QUERY,this.buffer);
+        }else{
+            this.in = execute(ctx,Flags.MODE_SEND_QUERY,this.buffer);
+            writeQueryResponse(ctx,messageEvent,this.in);
+        }
 
     }
 
@@ -273,7 +276,7 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
     }
 
     private void halt(MessageEvent messageEvent) {
-        messageEvent.getChannel().close();
+      //do nothing as Channel Buffer is always open
     }
 
     public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent event) throws Exception {

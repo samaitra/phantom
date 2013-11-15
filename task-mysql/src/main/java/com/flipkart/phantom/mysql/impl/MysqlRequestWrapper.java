@@ -1,17 +1,15 @@
 package com.flipkart.phantom.mysql.impl;
 
 import com.flipkart.phantom.task.spi.RequestWrapper;
-
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+
 
 /**
- * Created with IntelliJ IDEA.
- * User: saikat
- * Date: 31/10/13
- * Time: 5:41 PM
- * To change this template use File | Settings | File Templates.
+ * <code>MysqlRequestWrapper</code> has the the Mysql request buffer wrapped in ArrayList object.
+ * @author : samaitra
+ * @version : 1.0
+ * @date : 15/11/13
+ *
  */
 public class MysqlRequestWrapper implements RequestWrapper{
 
@@ -20,7 +18,7 @@ public class MysqlRequestWrapper implements RequestWrapper{
     private int flag;
 
 
-    /** Buffer */
+    /** Mysql request buffer wrapped in ArrayList object */
     private ArrayList<byte[]> buffer;
 
     /** Start Getter/Setter methods */

@@ -6,15 +6,13 @@ import com.flipkart.phantom.task.spi.TaskContext;
 import com.netflix.hystrix.*;
 
 import java.io.InputStream;
-import java.sql.ResultSet;
 import java.util.ArrayList;
 
 /**
- * Created with IntelliJ IDEA.
- * User: saikat
- * Date: 31/10/13
- * Time: 5:40 PM
- * To change this template use File | Settings | File Templates.
+ * Implements the HystrixCommand class for executing HTTP proxy requests
+ * @author : samaitra
+ * @version : 1.0
+ * @date : 15/11/13
  */
 public class MysqlProxyExecutor extends HystrixCommand<InputStream> implements Executor {
 
