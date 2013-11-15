@@ -47,17 +47,17 @@ public abstract class MysqlProxy extends AbstractHandler{
     /**
      * The main method which makes the Mysql request
      */
-    public InputStream doRequest(String uri,ArrayList<byte[]> buffer) throws Exception {
+    public InputStream doRequest(int flag,ArrayList<byte[]> buffer) throws Exception {
 
-        return driver.execute(uri,buffer);
+        return driver.execute(flag,buffer);
     }
 
     /**
      * Abstract fallback request method
-     * @param uri String Mysql request URI
+     * @param flag Flag Mysql request state
      * @return ResultSet response after executing the fallback
      */
-    public abstract InputStream fallbackRequest(String uri, ArrayList<byte[]> buffer);
+    public abstract InputStream fallbackRequest(int flag, ArrayList<byte[]> buffer);
 
     /**
      * Abstract method which gives group key

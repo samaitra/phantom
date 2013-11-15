@@ -1,6 +1,6 @@
 package com.flipkart.phantom.runtime.impl.server.netty.decoder.mysql;
 
-import com.flipkart.phantom.mysql.impl.protocol.Packet;
+import com.github.jmpjct.mysql.proto.Packet;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.jboss.netty.channel.Channel;
@@ -18,11 +18,25 @@ import java.util.ArrayList;
  * Time: 12:51 PM
  * To change this template use File | Settings | File Templates.
  */
+
+/**
+ * <code>MysqlPacketDecoder</code> is an extension of the Netty {@link org.jboss.netty.handler.codec.frame.FrameDecoder} that ensures that all mysql protocol bytes have been received
+ * before the {@link org.jboss.netty.channel.MessageEvent} is constructed for use by other upstream channel handlers.
+ *  This decoder attempts to read the Mysql message from the transport using the protocol. An unsuccessful read indicates that the bytes have not been fully
+ * received. This decoder returns a null object in {@link #decode(ChannelHandlerContext, Channel, ChannelBuffer)} in such scenarios and the Netty
+ * framework would then call it again when more bytes are received, eventually resulting in all required bytes becoming available.
+ * @author Saikat Maitra
+ * @version 1.0, 15 November, 2013
+ */
 public class MysqlPacketDecoder extends FrameDecoder {
 
     /** Logger for this class*/
     private static final Logger LOGGER = LoggerFactory.getLogger(MysqlPacketDecoder.class);
 
+    /**
+     * Interface method implementation. Tries to read the Mysql protocol message. Returns null if unsuccessful, else returns the read byte array
+     * @see org.jboss.netty.handler.codec.frame.FrameDecoder#decode(org.jboss.netty.channel.ChannelHandlerContext, org.jboss.netty.channel.Channel, org.jboss.netty.buffer.ChannelBuffer)
+     */
     @Override
     protected Object decode(ChannelHandlerContext ctx, Channel channel, ChannelBuffer buf) throws Exception {
 

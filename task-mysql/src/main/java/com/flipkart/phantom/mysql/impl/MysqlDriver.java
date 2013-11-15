@@ -1,6 +1,7 @@
 package com.flipkart.phantom.mysql.impl;
 
-import com.flipkart.phantom.mysql.impl.protocol.Packet;
+import com.github.jmpjct.mysql.proto.Flags;
+import com.github.jmpjct.mysql.proto.Packet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,22 +94,28 @@ public class MysqlDriver {
         }
     }
 
-
-
-
     /**
      * Method to execute a request
-     * @return response ResultSet object
+     * @return InputSteam object
      */
-    public InputStream execute(String uri,ArrayList<byte[]> buffer) throws Exception {
-            if(uri.equals("init")){
-               initConnection();
-            }if(uri.equals("clientAuth")){
+    public InputStream execute(int flag,ArrayList<byte[]> buffer) throws Exception {
+
+        switch (flag){
+            case Flags.MODE_INIT:
+                initConnection();
+                break;
+            case Flags.MODE_SEND_AUTH:
                 Packet.write(this.mysqlOut, buffer);
-            }if(uri.equals("sendQuery")){
-                Packet.write(this.mysqlOut, buffer);
-            }
-            return this.mysqlIn;
+                break;
+            case Flags.MODE_SEND_QUERY:
+                Packet.write(this.mysqlOut,buffer);
+               break;
+            default:
+                break;
+
+        }
+
+        return this.mysqlIn;
         }
 
     /** shutdown the socket connections */

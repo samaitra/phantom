@@ -15,8 +15,9 @@ import java.util.Map;
  */
 public class MysqlRequestWrapper implements RequestWrapper{
 
-    /** uri */
-    private String uri;
+
+    /** flag to determine the state of request */
+    private int flag;
 
 
     /** Buffer */
@@ -24,13 +25,14 @@ public class MysqlRequestWrapper implements RequestWrapper{
 
     /** Start Getter/Setter methods */
 
-    public String getUri(){
-        return uri;
+    public int getFlag() {
+        return this.flag;
     }
 
-    public void setUri(String uri){
-        this.uri = uri;
+    public void setFlag(int flag) {
+        this.flag = flag;
     }
+
 
     public ArrayList<byte[]> getBuffer() {
         return buffer;

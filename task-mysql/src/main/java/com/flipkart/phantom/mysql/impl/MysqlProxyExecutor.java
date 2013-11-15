@@ -19,8 +19,8 @@ import java.util.ArrayList;
 public class MysqlProxyExecutor extends HystrixCommand<InputStream> implements Executor {
 
 
-    /** uri */
-    String uri;
+    /** request mode flag */
+    int flag;
 
     /** data */
     byte[] data;
@@ -50,7 +50,7 @@ public class MysqlProxyExecutor extends HystrixCommand<InputStream> implements E
         MysqlRequestWrapper mysqlRequestWrapper = (MysqlRequestWrapper) requestWrapper;
 
         /** get necessary data required for the output */
-        this.uri = mysqlRequestWrapper.getUri();
+        this.flag = mysqlRequestWrapper.getFlag();
         this.buffer = mysqlRequestWrapper.getBuffer();
     }
     /**
@@ -60,7 +60,7 @@ public class MysqlProxyExecutor extends HystrixCommand<InputStream> implements E
      */
     @Override
     protected InputStream run() throws Exception {
-        return proxy.doRequest(uri,buffer);
+        return proxy.doRequest(flag,buffer);
     }
 
     /**
@@ -70,7 +70,7 @@ public class MysqlProxyExecutor extends HystrixCommand<InputStream> implements E
      */
     @Override
     protected InputStream getFallback() {
-        return proxy.fallbackRequest(uri,buffer);
+        return proxy.fallbackRequest(flag,buffer);
     }
 
     /** Getter/Setter methods */

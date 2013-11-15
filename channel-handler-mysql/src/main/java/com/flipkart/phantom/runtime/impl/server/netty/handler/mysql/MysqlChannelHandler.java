@@ -3,11 +3,10 @@ package com.flipkart.phantom.runtime.impl.server.netty.handler.mysql;
 import com.flipkart.phantom.event.ServiceProxyEventProducer;
 import com.flipkart.phantom.mysql.impl.MysqlProxyExecutor;
 import com.flipkart.phantom.mysql.impl.MysqlRequestWrapper;
-import com.flipkart.phantom.mysql.impl.protocol.*;
+import com.flipkart.phantom.runtime.impl.server.netty.channel.mysql.MysqlNettyChannelBuffer;
 import com.flipkart.phantom.task.spi.Executor;
 import com.flipkart.phantom.task.spi.repository.ExecutorRepository;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
+import com.github.jmpjct.mysql.proto.*;
 import org.jboss.netty.channel.*;
 import org.jboss.netty.channel.group.ChannelGroup;
 
@@ -54,9 +53,16 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
     /** Event Type for publishing all events which are generated here */
     private final static String Mysql_HANDLER = "Mysql_HANDLER";
 
-    private String flag = "init";
+    /** The flag to determine the state in connection */
+    private int flag = Flags.MODE_INIT;
 
-    ArrayList<byte[]> buffer;
+    /** The response byte array holder*/
+    private ArrayList<byte[]> buffer;
+
+    /** The response InputStream from mysql socket */
+
+    private InputStream in = null;
+
     private long sequenceId;
     private String schema;
     private String query;
@@ -85,35 +91,51 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
     @Override
     public void handleUpstream(ChannelHandlerContext ctx, ChannelEvent event) throws Exception {
 
-        ChannelBuffer input=null;
-        try{
-          input = (ChannelBuffer) ((MessageEvent) event).getMessage();
-        }catch (Exception e){}
-        ChannelBuffer output = ChannelBuffers.dynamicBuffer(4096);
+        if(this.flag == Flags.MODE_INIT){
+            this.in = execute(ctx, this.flag, event);
+            writeServerHandshake(ctx,event,this.in);
+        }
 
+        super.handleUpstream(ctx, event);
+    }
 
-        if(this.flag.equals("init")){
+    @Override
+    public void messageReceived(ChannelHandlerContext ctx, MessageEvent messageEvent) throws Exception{
+
+        if(this.flag == Flags.MODE_READ_AUTH){
+            handleAuthentication(ctx,messageEvent);
+        }else {
+            handleQueries(ctx,messageEvent);
+        }
+
+    }
+
+    private InputStream execute(ChannelHandlerContext ctx, int flag, ChannelEvent event) {
 
         MysqlRequestWrapper executorMysqlRequest = new MysqlRequestWrapper();
-        executorMysqlRequest.setUri("init");
+        executorMysqlRequest.setFlag(Flags.MODE_INIT);
 
         String proxy = this.proxyMap.get(MysqlChannelHandler.ALL_ROUTES);
         Executor executor = this.repository.getExecutor(proxy,proxy,executorMysqlRequest);
         InputStream in = null;
         try{
-          in = (InputStream) executor.execute();
+            in = (InputStream) executor.execute();
         }catch (Exception e){
             throw new RuntimeException("Error in reading server handshake message :" + proxy + ".", e);
         }finally {
 
-        // Publishes event both in case of success and failure.
+            // Publishes event both in case of success and failure.
             Class eventSource = (executor == null) ? this.getClass() :((MysqlProxyExecutor)executor).getProxy().getClass();
             eventProducer.publishEvent(executor, "init", eventSource, Mysql_HANDLER);
         }
 
-        byte[] packet = Packet.read_packet(in);
+        return in;
+    }
 
-        AuthChallenge authChallenge = AuthChallenge.loadFromPacket(packet);
+    private void writeServerHandshake(ChannelHandlerContext ctx, ChannelEvent event, InputStream in) throws Exception {
+
+        byte[] packet = Packet.read_packet(in);
+        Auth_Challenge authChallenge = Auth_Challenge.loadFromPacket(packet);
 
         // Remove some flags from the reply
         authChallenge.removeCapabilityFlag(Flags.CLIENT_COMPRESS);
@@ -124,167 +146,134 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
         ResultSet.characterSet = authChallenge.characterSet;
 
         // Set Replace the packet in the buffer
-       this.buffer = new ArrayList<byte[]>();
-       this.buffer.add(authChallenge.toPacket());
+        this.buffer = new ArrayList<byte[]>();
+        this.buffer.add(authChallenge.toPacket());
 
-        output = ChannelBuffers.copiedBuffer(authChallenge.toPacket());
-        event.getChannel().write(output).addListener(new ChannelFutureListener() {
-            @Override
-            public void operationComplete(ChannelFuture channelFuture) throws Exception {
-                LOGGER.debug("Write complete for server handshake.");
+        MysqlNettyChannelBuffer.write(event,this.buffer);
+        this.flag = Flags.MODE_READ_AUTH;
 
-            }
-        });
-        this.flag = "readAuth";
-
-        }
-
-        super.handleUpstream(ctx, event);
     }
 
-    @Override
-    public void messageReceived(ChannelHandlerContext ctx, MessageEvent messageEvent) throws Exception{
+    private void handleAuthentication(ChannelHandlerContext ctx, MessageEvent messageEvent) throws Exception{
 
+        this.buffer =  (ArrayList<byte[]>)messageEvent.getMessage();
 
-        ChannelBuffer output = ChannelBuffers.dynamicBuffer(4096);
+        Auth_Response authReply = Auth_Response.loadFromPacket(this.buffer.get(0));
 
-        if(this.flag.equals("readAuth")){
+        if (!authReply.hasCapabilityFlag(Flags.CLIENT_PROTOCOL_41)) {
+            LOGGER.debug("We do not support Protocols under 4.1");
 
-            this.buffer =  (ArrayList<byte[]>)messageEvent.getMessage();
-
-            AuthResponse authReply = AuthResponse.loadFromPacket(this.buffer.get(0));
-
-            if (!authReply.hasCapabilityFlag(Flags.CLIENT_PROTOCOL_41)) {
-                LOGGER.debug("We do not support Protocols under 4.1");
-
-                return;
-            }
-
-            authReply.removeCapabilityFlag(Flags.CLIENT_COMPRESS);
-            authReply.removeCapabilityFlag(Flags.CLIENT_SSL);
-            authReply.removeCapabilityFlag(Flags.CLIENT_LOCAL_FILES);
-
-            String schema = authReply.schema;
-
-
-            MysqlRequestWrapper executorMysqlRequest = new MysqlRequestWrapper();
-            executorMysqlRequest.setUri("clientAuth");
-            executorMysqlRequest.setBuffer(this.buffer);
-            String proxy = this.proxyMap.get(MysqlChannelHandler.ALL_ROUTES);
-            Executor executor = this.repository.getExecutor(proxy,proxy,executorMysqlRequest);
-            InputStream in = null;
-            try{
-                in = (InputStream) executor.execute();
-            }catch (Exception e){
-                throw new RuntimeException("Error in reading server Auth Response :" + proxy + ".", e);
-            }finally {
-
-                // Publishes event both in case of success and failure.
-                Class eventSource = (executor == null) ? this.getClass() :((MysqlProxyExecutor)executor).getProxy().getClass();
-                eventProducer.publishEvent(executor, "init", eventSource, Mysql_HANDLER);
-            }
-
-            byte[] packet = Packet.read_packet(in);
-
-            this.buffer = new ArrayList<byte[]>();
-            this.buffer.add(packet);
-
-            if (Packet.getType(packet) != Flags.OK) {
-                LOGGER.debug("Auth is not okay!");
-            }
-
-            this.flag = "readQuery";
-
-            output =  ChannelBuffers.copiedBuffer(this.buffer.get(0));
-            messageEvent.getChannel().write(output).addListener(new ChannelFutureListener() {
-                @Override
-                public void operationComplete(ChannelFuture channelFuture) throws Exception {
-                    LOGGER.debug("Write complete for server AuthResult");
-
-                }
-            });
-
+            return;
         }
 
-        else {
+        authReply.removeCapabilityFlag(Flags.CLIENT_COMPRESS);
+        authReply.removeCapabilityFlag(Flags.CLIENT_SSL);
+        authReply.removeCapabilityFlag(Flags.CLIENT_LOCAL_FILES);
 
-            this.bufferResultSet = false;
-            this.buffer = new ArrayList<byte[]>();
-            this.buffer = (ArrayList<byte[]>) messageEvent.getMessage();
-            byte[] packet = this.buffer.get(0);
+        this.in = execute(ctx, Flags.MODE_SEND_AUTH, this.buffer);
+        writeAuthResponse(ctx, messageEvent, this.in);
 
-            this.sequenceId = Packet.getSequenceId(packet);
+    }
+
+    private InputStream execute(ChannelHandlerContext ctx, int flag, ArrayList<byte[]> buffer){
+
+        MysqlRequestWrapper executorMysqlRequest = new MysqlRequestWrapper();
+        executorMysqlRequest.setFlag(flag);
+        executorMysqlRequest.setBuffer(buffer);
+        String proxy = this.proxyMap.get(MysqlChannelHandler.ALL_ROUTES);
+        Executor executor = this.repository.getExecutor(proxy,proxy,executorMysqlRequest);
+        try{
+            this.in = (InputStream) executor.execute();
+        }catch (Exception e){
+            throw new RuntimeException("Error in reading server Auth Response :" + proxy + ".", e);
+        }finally {
+            // Publishes event both in case of success and failure.
+            Class eventSource = (executor == null) ? this.getClass() :((MysqlProxyExecutor)executor).getProxy().getClass();
+            eventProducer.publishEvent(executor, "init", eventSource, Mysql_HANDLER);
+        }
+
+        return this.in;
+    }
+
+    private void writeAuthResponse(ChannelHandlerContext ctx, MessageEvent messageEvent, InputStream in) throws Exception{
+
+        byte[] packet = Packet.read_packet(in);
+        this.buffer = new ArrayList<byte[]>();
+        this.buffer.add(packet);
+
+        if (Packet.getType(packet) != Flags.OK) {
+            LOGGER.debug("Auth is not okay!");
+        }
+
+        MysqlNettyChannelBuffer.write(messageEvent,this.buffer);
+        this.flag = Flags.MODE_READ_QUERY;
+    }
+
+    private void handleQueries(ChannelHandlerContext ctx, MessageEvent messageEvent) throws Exception{
+
+        this.bufferResultSet = false;
+        this.buffer = new ArrayList<byte[]>();
+        this.buffer = (ArrayList<byte[]>) messageEvent.getMessage();
+        byte[] packet = this.buffer.get(0);
+
+        this.sequenceId = Packet.getSequenceId(packet);
 //          LOGGER.debug("Client sequenceId: " + this.sequenceId);
 
-            switch (Packet.getType(packet)) {
-                case Flags.COM_QUIT:
-                    LOGGER.info("COM_QUIT");
-                    this.halt(messageEvent);
-                    break;
+        switch (Packet.getType(packet)) {
+            case Flags.COM_QUIT:
+                LOGGER.debug("COM_QUIT");
+                this.halt(messageEvent);
+                break;
 
-                // Extract out the new default schema
-                case Flags.COM_INIT_DB:
-                   LOGGER.trace("COM_INIT_DB");
-                    this.schema = ComInitdb.loadFromPacket(packet).schema;
-                    break;
+            // Extract out the new default schema
+            case Flags.COM_INIT_DB:
+                LOGGER.debug("COM_INIT_DB");
+                this.schema = Com_Initdb.loadFromPacket(packet).schema;
+                break;
 
-                // Query
-                case Flags.COM_QUERY:
-                    LOGGER.trace("COM_QUERY");
-                    this.query = ComQuery.loadFromPacket(packet).query;
+            // Query
+            case Flags.COM_QUERY:
+                LOGGER.debug("COM_QUERY");
+                this.query = Com_Query.loadFromPacket(packet).query;
 //                  LOGGER.debug("my query  : "+this.query);
-                    break;
+                break;
 
-                default:
-                    break;
-
-            }
-
-            MysqlRequestWrapper executorMysqlRequest = new MysqlRequestWrapper();
-            executorMysqlRequest.setUri("sendQuery");
-            executorMysqlRequest.setBuffer(this.buffer);
-            String proxy = this.proxyMap.get(MysqlChannelHandler.ALL_ROUTES);
-            Executor executor = this.repository.getExecutor(proxy,proxy,executorMysqlRequest);
-            InputStream in = null;
-            try{
-                in = (InputStream) executor.execute();
-            }catch (Exception e){
-                throw new RuntimeException("Error in Send Query :" + proxy + ".", e);
-            }finally {
-
-                Class eventSource = (executor == null) ? this.getClass() :((MysqlProxyExecutor)executor).getProxy().getClass();
-                eventProducer.publishEvent(executor, "init", eventSource, Mysql_HANDLER);
-            }
-
-            packet = Packet.read_packet(in);
-
-            this.buffer = new ArrayList<byte[]>();
-            this.buffer.add(packet);
-
-            this.sequenceId = Packet.getSequenceId(packet);
-
-            switch (Packet.getType(packet)) {
-                case Flags.OK:
-                case Flags.ERR:
-                    break;
-
-                default:
-                    this.buffer = Packet.read_full_result_set(in, messageEvent, this.buffer, this.bufferResultSet);
-                    break;
-            }
-
-            this.flag = "readQuery";
-
-            Packet.write(messageEvent,this.buffer);
-
-
+            default:
+                break;
 
         }
 
+        this.in = execute(ctx,Flags.MODE_SEND_QUERY,this.buffer);
+        writeQueryResponse(ctx,messageEvent,this.in);
+
     }
 
-    private void halt(MessageEvent e) {
-        e.getChannel().close();
+    private void writeQueryResponse(ChannelHandlerContext ctx, MessageEvent messageEvent, InputStream in) throws Exception {
+
+        byte[] packet = Packet.read_packet(in);
+        this.buffer = new ArrayList<byte[]>();
+        this.buffer.add(packet);
+
+        this.sequenceId = Packet.getSequenceId(packet);
+
+        switch (Packet.getType(packet)) {
+            case Flags.OK:
+            case Flags.ERR:
+                break;
+
+            default:
+                this.buffer = MysqlNettyChannelBuffer.readFullResultSet(in, messageEvent, this.buffer, this.bufferResultSet);
+                break;
+        }
+
+
+        MysqlNettyChannelBuffer.write(messageEvent,this.buffer);
+        this.flag = Flags.MODE_READ_QUERY;
+
+    }
+
+    private void halt(MessageEvent messageEvent) {
+        messageEvent.getChannel().close();
     }
 
     public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent event) throws Exception {
@@ -295,6 +284,7 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
 
 
     /** Start Getter/Setter methods */
+
     public ChannelGroup getDefaultChannelGroup() {
         return this.defaultChannelGroup;
     }

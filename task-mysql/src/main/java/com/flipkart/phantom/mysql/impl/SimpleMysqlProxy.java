@@ -15,10 +15,10 @@ public class SimpleMysqlProxy extends MysqlProxy {
 
     /**
      * Abstract method implementation
-     * @see com.flipkart.phantom.mysql.impl.MysqlProxy#fallbackRequest(String,ArrayList<byte[]>)
+     * @see com.flipkart.phantom.mysql.impl.MysqlProxy#fallbackRequest(int,ArrayList<byte[]>)
      */
     @Override
-    public InputStream fallbackRequest(String uri, ArrayList<byte[]> buffer) {
+    public InputStream fallbackRequest(int flag , ArrayList<byte[]> buffer) {
         return null;
     }
 
