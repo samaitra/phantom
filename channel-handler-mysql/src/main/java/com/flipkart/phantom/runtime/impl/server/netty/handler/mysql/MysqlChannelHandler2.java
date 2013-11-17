@@ -139,6 +139,12 @@ public class MysqlChannelHandler2 extends SimpleChannelHandler implements Initia
 
     private InputStream execute(ChannelHandlerContext ctx, int flag) throws Exception{
 
+        /*
+        Need to create a socket connection in the handler to establish successful authentication ritual with mysql server.
+        Delegating this process to Mysql proxy makes the order of messages incorrect. When messages reaches the Hystrix thread pool
+        and responses are received the order of messages are not as per client expectations.
+        */
+
         this.mysqlSocket = new Socket(this.host, this.port);
         this.mysqlSocket.setPerformancePreferences(0, 2, 1);
         this.mysqlSocket.setTcpNoDelay(true);
@@ -185,7 +191,6 @@ public class MysqlChannelHandler2 extends SimpleChannelHandler implements Initia
         LOGGER.info("auth request "+this.buffer.get(0));
         if (!authReply.hasCapabilityFlag(Flags.CLIENT_PROTOCOL_41)) {
             LOGGER.debug("We do not support Protocols under 4.1");
-
             return;
         }
 
@@ -240,7 +245,7 @@ public class MysqlChannelHandler2 extends SimpleChannelHandler implements Initia
         switch (Packet.getType(packet)) {
             case Flags.COM_QUIT:
                 LOGGER.debug("COM_QUIT");
-                LOGGER.info("my connection quit query.");
+                LOGGER.info("Mysql connection quit query.");
                 this.halt(messageEvent);
                 break;
 
