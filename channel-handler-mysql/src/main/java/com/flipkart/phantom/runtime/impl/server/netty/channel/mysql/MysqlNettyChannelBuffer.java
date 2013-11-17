@@ -30,8 +30,6 @@ public class MysqlNettyChannelBuffer extends Packet{
     /**
      *  read complete result set from mysql server all the input bytes
      */
-
-
     public static ArrayList<byte[]> readFullResultSet(InputStream in, MessageEvent messageEvent, ArrayList<byte[]> buffer, boolean bufferResultSet) throws IOException {
         // Assume we have the start of a result set already
 
@@ -110,11 +108,11 @@ public class MysqlNettyChannelBuffer extends Packet{
         }
         return buffer;
     }
+
     /**
      *  Writes all the output bytes into the output ChannelBuffer
      *
      */
-
     public static void write(MessageEvent messageEvent, ArrayList<byte[]> buffer) {
 
         for (byte[] packet: buffer) {
@@ -128,7 +126,6 @@ public class MysqlNettyChannelBuffer extends Packet{
      *  Writes all the output bytes into the output ChannelBuffer
      *
      */
-
     public static void write(ChannelEvent event, ArrayList<byte[]> buffer) {
 
         for (byte[] packet: buffer) {

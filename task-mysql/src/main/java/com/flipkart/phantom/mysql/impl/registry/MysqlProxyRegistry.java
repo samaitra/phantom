@@ -1,6 +1,7 @@
 package com.flipkart.phantom.mysql.impl.registry;
 
 import com.flipkart.phantom.mysql.impl.MysqlProxy;
+import com.flipkart.phantom.mysql.impl.MysqlProxy2;
 import com.flipkart.phantom.task.spi.AbstractHandler;
 import com.flipkart.phantom.task.spi.TaskContext;
 import com.flipkart.phantom.task.spi.registry.AbstractHandlerRegistry;
@@ -25,7 +26,7 @@ public class MysqlProxyRegistry implements AbstractHandlerRegistry {
     private static Logger LOGGER = LogFactory.getLogger(MysqlProxyRegistry.class);
 
     /** list of proxies by name */
-    private Map<String,MysqlProxy> proxies = new HashMap<String,MysqlProxy>();
+    private Map<String,MysqlProxy2> proxies = new HashMap<String,MysqlProxy2>();
 
     /**
      * Abstract method implementation
@@ -35,9 +36,9 @@ public class MysqlProxyRegistry implements AbstractHandlerRegistry {
     public AbstractHandlerRegistry.InitedHandlerInfo[] init(List<HandlerConfigInfo> handlerConfigInfoList, TaskContext taskContext) throws Exception {
         List<AbstractHandlerRegistry.InitedHandlerInfo> initedHandlerInfos = new LinkedList<InitedHandlerInfo>();
         for (HandlerConfigInfo handlerConfigInfo : handlerConfigInfoList) {
-            String[] proxyBeanIds = handlerConfigInfo.getProxyHandlerContext().getBeanNamesForType(MysqlProxy.class);
+            String[] proxyBeanIds = handlerConfigInfo.getProxyHandlerContext().getBeanNamesForType(MysqlProxy2.class);
             for (String proxyBeanId : proxyBeanIds) {
-                MysqlProxy proxy = (MysqlProxy) handlerConfigInfo.getProxyHandlerContext().getBean(proxyBeanId);
+                MysqlProxy2 proxy = (MysqlProxy2) handlerConfigInfo.getProxyHandlerContext().getBean(proxyBeanId);
                 try {
                     LOGGER.info("Initializing MysqlProxy: " + proxy.getName());
                     proxy.init(taskContext);
@@ -59,7 +60,7 @@ public class MysqlProxyRegistry implements AbstractHandlerRegistry {
      */
     @Override
     public void reinitHandler(String name, TaskContext taskContext) throws Exception {
-        MysqlProxy proxy = this.proxies.get(name);
+        MysqlProxy2 proxy = this.proxies.get(name);
         if (proxy != null) {
             try {
                 proxy.deactivate();

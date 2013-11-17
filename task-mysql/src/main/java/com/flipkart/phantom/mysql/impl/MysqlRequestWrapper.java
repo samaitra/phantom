@@ -1,6 +1,10 @@
 package com.flipkart.phantom.mysql.impl;
 
 import com.flipkart.phantom.task.spi.RequestWrapper;
+
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Socket;
 import java.util.ArrayList;
 
 
@@ -21,6 +25,11 @@ public class MysqlRequestWrapper implements RequestWrapper{
     /** Mysql request buffer wrapped in ArrayList object */
     private ArrayList<byte[]> buffer;
 
+
+
+
+    private ArrayList<byte[]> clientAuthBuffer;
+
     /** Start Getter/Setter methods */
 
     public int getFlag() {
@@ -39,6 +48,15 @@ public class MysqlRequestWrapper implements RequestWrapper{
     public void setBuffer(ArrayList<byte[]> buffer) {
         this.buffer = buffer;
     }
+
+    public ArrayList<byte[]> getClientAuthBuffer() {
+        return clientAuthBuffer;
+    }
+
+    public void setClientAuthBuffer(ArrayList<byte[]> clientAuthBuffer) {
+        this.clientAuthBuffer = clientAuthBuffer;
+    }
+
 
 /**End Getter/Setter methods */
 

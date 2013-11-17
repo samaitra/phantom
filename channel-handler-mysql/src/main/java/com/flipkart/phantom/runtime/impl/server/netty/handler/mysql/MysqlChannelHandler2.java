@@ -9,32 +9,49 @@ import com.flipkart.phantom.task.spi.repository.ExecutorRepository;
 import com.github.jmpjct.mysql.proto.*;
 import org.jboss.netty.channel.*;
 import org.jboss.netty.channel.group.ChannelGroup;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.util.Assert;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * <code>MysqlChannelHandler</code> is a sub-type of {@link SimpleChannelHandler} that acts as a proxy for Mysql calls using the mysql protocol.
- * It wraps the Mysql call using a {@link MysqlProxyExecutor} that provides useful features like monitoring, fallback etc.
- *
- * @author : samaitra
- * @version : 1.0
- * @date : 15/11/13
+ * Created with IntelliJ IDEA.
+ * User: saikat
+ * Date: 16/11/13
+ * Time: 12:18 PM
+ * To change this template use File | Settings | File Templates.
  */
-public class MysqlChannelHandler extends SimpleChannelHandler implements InitializingBean {
+public class MysqlChannelHandler2 extends SimpleChannelHandler implements InitializingBean {
+    /** Host to connect to */
+    public String host = "localhost";
+
+    /** port to connect to */
+    public int port = 3306;
+
+    /** mysql socket to connect mysql server */
+    public Socket mysqlSocket = null;
+
+    /** mysql socket input stream */
+
+    public InputStream mysqlIn = null;
+
+    /** mysql socket output stream */
+
+    public OutputStream mysqlOut = null;
 
     /** The empty routing key which is default*/
     public static final String ALL_ROUTES = "";
 
     /** Logger for this class*/
-    private static final Logger LOGGER = LoggerFactory.getLogger(MysqlChannelHandler.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(MysqlChannelHandler2.class);
 
     /** The default channel group*/
     private ChannelGroup defaultChannelGroup;
@@ -64,13 +81,14 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
 
     private InputStream in = null;
 
-    private long sequenceId;
-    private String schema;
     private String query;
 
     public boolean bufferResultSet = true;
-    public boolean packResultSet = true;
-
+    private long sequenceId;
+    private String schema;
+    private Executor executor;
+    private String proxy;
+    private int count=0;
     /**
      * Interface method implementation. Checks if all mandatory properties have been set
      * @see org.springframework.beans.factory.InitializingBean#afterPropertiesSet()
@@ -78,7 +96,7 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
     public void afterPropertiesSet() throws Exception {
         Assert.notNull(this.defaultProxy, "The 'defaultProxy' may not be null");
         // add the default proxy for all routes i.e. default
-        this.proxyMap.put(MysqlChannelHandler.ALL_ROUTES, defaultProxy);
+        this.proxyMap.put(MysqlChannelHandler2.ALL_ROUTES, defaultProxy);
     }
 
     /**
@@ -89,16 +107,20 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
         super.channelOpen(ctx, event);
     }
 
+
+
     @Override
     public void handleUpstream(ChannelHandlerContext ctx, ChannelEvent event) throws Exception {
 
+
         if(this.flag == Flags.MODE_INIT){
-            this.in = execute(ctx, this.flag, event);
+            this.in = execute(ctx,this.flag);
             writeServerHandshake(ctx,event,this.in);
         }
 
-        super.handleUpstream(ctx, event);
+        super.handleUpstream(ctx,event);
     }
+
 
     @Override
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent messageEvent) throws Exception{
@@ -108,29 +130,30 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
         }else {
             handleQueries(ctx,messageEvent);
         }
+        /* Increment count to keep track of connection customs.
+         There are 7 customary queries being fired by MysqlClient before connection can be established.
+        */
 
+        this.count++;
     }
 
-    private InputStream execute(ChannelHandlerContext ctx, int flag, ChannelEvent event) {
+    private InputStream execute(ChannelHandlerContext ctx, int flag) throws Exception{
 
-        MysqlRequestWrapper executorMysqlRequest = new MysqlRequestWrapper();
-        executorMysqlRequest.setFlag(Flags.MODE_INIT);
+        this.mysqlSocket = new Socket(this.host, this.port);
+        this.mysqlSocket.setPerformancePreferences(0, 2, 1);
+        this.mysqlSocket.setTcpNoDelay(true);
+        this.mysqlSocket.setTrafficClass(0x10);
+        this.mysqlSocket.setKeepAlive(true);
 
-        String proxy = this.proxyMap.get(MysqlChannelHandler.ALL_ROUTES);
-        Executor executor = this.repository.getExecutor(proxy,proxy,executorMysqlRequest);
-        try{
-            this.in = (InputStream) executor.execute();
-        }catch (Exception e){
-            throw new RuntimeException("Error in reading server handshake message :" + proxy + ".", e);
-        }finally {
+        LOGGER.info("Connected to mysql server at "+this.host+":"+this.port);
+        this.mysqlIn = new BufferedInputStream(this.mysqlSocket.getInputStream(), 16384);
+        this.mysqlOut = this.mysqlSocket.getOutputStream();
 
-            // Publishes event both in case of success and failure.
-            Class eventSource = (executor == null) ? this.getClass() :((MysqlProxyExecutor)executor).getProxy().getClass();
-            eventProducer.publishEvent(executor, "init", eventSource, Mysql_HANDLER);
-        }
 
-        return this.in;
-    }
+        return this.mysqlIn;
+
+
+   }
 
     private void writeServerHandshake(ChannelHandlerContext ctx, ChannelEvent event, InputStream in) throws Exception {
 
@@ -149,7 +172,7 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
         this.buffer = new ArrayList<byte[]>();
         this.buffer.add(authChallenge.toPacket());
 
-        new MysqlNettyChannelBuffer().write(event,this.buffer);
+        MysqlNettyChannelBuffer.write(event, this.buffer);
         this.flag = Flags.MODE_READ_AUTH;
 
     }
@@ -169,31 +192,27 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
         authReply.removeCapabilityFlag(Flags.CLIENT_COMPRESS);
         authReply.removeCapabilityFlag(Flags.CLIENT_SSL);
         authReply.removeCapabilityFlag(Flags.CLIENT_LOCAL_FILES);
-
-        this.in = execute(ctx, Flags.MODE_SEND_AUTH, this.buffer);
+        this.in = executeAuth(ctx, Flags.MODE_SEND_AUTH, this.buffer);
         LOGGER.info("messageEvent "+messageEvent);
         writeAuthResponse(ctx, messageEvent, this.in);
 
     }
 
-    private InputStream execute(ChannelHandlerContext ctx, int flag, ArrayList<byte[]> buffer){
+    private InputStream executeAuth(ChannelHandlerContext ctx, int flag, ArrayList<byte[]> buffer) throws Exception{
 
-        MysqlRequestWrapper executorMysqlRequest = new MysqlRequestWrapper();
-        executorMysqlRequest.setFlag(flag);
-        executorMysqlRequest.setBuffer(buffer);
-        String proxy = this.proxyMap.get(MysqlChannelHandler.ALL_ROUTES);
-        Executor executor = this.repository.getExecutor(proxy,proxy,executorMysqlRequest);
-        try{
-            this.in = (InputStream) executor.execute();
-        }catch (Exception e){
-            throw new RuntimeException("Error in reading server Auth Response :" + proxy + ".", e);
-        }finally {
-            // Publishes event both in case of success and failure.
-            Class eventSource = (executor == null) ? this.getClass() :((MysqlProxyExecutor)executor).getProxy().getClass();
-            eventProducer.publishEvent(executor, "init", eventSource, Mysql_HANDLER);
+
+        switch (flag){
+            case Flags.MODE_SEND_AUTH:
+                LOGGER.info("Auth request to mysql "+new String(buffer.get(0)));
+                Packet.write(this.mysqlOut, buffer);
+                break;
+            default:
+                break;
+
         }
 
-        return this.in;
+        return this.mysqlIn;
+
     }
 
     private void writeAuthResponse(ChannelHandlerContext ctx, MessageEvent messageEvent, InputStream in) throws Exception{
@@ -206,7 +225,7 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
             LOGGER.debug("Auth is not okay!");
         }
 
-        new MysqlNettyChannelBuffer().write(messageEvent,this.buffer);
+        MysqlNettyChannelBuffer.write(messageEvent, this.buffer);
         this.flag = Flags.MODE_READ_QUERY;
     }
 
@@ -221,6 +240,7 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
         switch (Packet.getType(packet)) {
             case Flags.COM_QUIT:
                 LOGGER.debug("COM_QUIT");
+                LOGGER.info("my connection quit query.");
                 this.halt(messageEvent);
                 break;
 
@@ -234,7 +254,7 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
             case Flags.COM_QUERY:
                 LOGGER.debug("COM_QUERY");
                 this.query = Com_Query.loadFromPacket(packet).query;
-                  LOGGER.info("my query  : "+this.query);
+                LOGGER.info("my query  : "+this.query);
                 break;
 
             default:
@@ -244,13 +264,57 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
 
         //No need to write response if Command request packet is for Quit
         if(Packet.getType(packet)==Flags.COM_QUIT){
-            execute(ctx,Flags.MODE_SEND_QUERY,this.buffer);
+            executeQueries(ctx,Flags.MODE_SEND_QUERY,this.buffer);
         }else{
-            this.in = execute(ctx,Flags.MODE_SEND_QUERY,this.buffer);
+            this.in = executeQueries(ctx,Flags.MODE_SEND_QUERY,this.buffer);
             writeQueryResponse(ctx,messageEvent,this.in);
         }
 
     }
+
+    private InputStream executeQueries(ChannelHandlerContext ctx, int flag, ArrayList<byte[]> buffer) throws Exception{
+
+        //dirty hack to check if connection has been established before sending queries to Mysqlproxy
+        if(this.count<7){
+
+            switch (flag){
+            case Flags.MODE_SEND_QUERY:
+                LOGGER.info("Query to mysql "+new String(buffer.get(0)));
+                Packet.write(this.mysqlOut, buffer);
+                break;
+            default:
+                break;
+            }
+
+            return this.mysqlIn;
+
+
+        }else{
+
+        MysqlRequestWrapper executorMysqlRequest = new MysqlRequestWrapper();
+        executorMysqlRequest.setFlag(flag);
+        executorMysqlRequest.setBuffer(buffer);
+
+        String proxy = this.proxyMap.get(MysqlChannelHandler.ALL_ROUTES);
+        Executor executor = this.repository.getExecutor(proxy,proxy,executorMysqlRequest);
+        try{
+            this.in = (InputStream) executor.execute();
+        }catch (Exception e){
+            throw new RuntimeException("Error in reading server Queries Response :" + proxy + ".", e);
+        }finally {
+            // Publishes event both in case of success and failure.
+            Class eventSource = (executor == null) ? this.getClass() :((MysqlProxyExecutor)executor).getProxy().getClass();
+            eventProducer.publishEvent(executor, "init", eventSource, Mysql_HANDLER);
+        }
+
+        return this.in;
+
+        }
+
+
+    }
+
+
 
     private void writeQueryResponse(ChannelHandlerContext ctx, MessageEvent messageEvent, InputStream in) throws Exception {
 
@@ -266,18 +330,19 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
                 break;
 
             default:
-                this.buffer = new MysqlNettyChannelBuffer().readFullResultSet(in, messageEvent, this.buffer, this.bufferResultSet);
+                this.buffer = MysqlNettyChannelBuffer.readFullResultSet(in, messageEvent, this.buffer, this.bufferResultSet);
                 break;
         }
 
 
-        new MysqlNettyChannelBuffer().write(messageEvent,this.buffer);
+        MysqlNettyChannelBuffer.write(messageEvent, this.buffer);
+
         this.flag = Flags.MODE_READ_QUERY;
 
     }
 
     private void halt(MessageEvent messageEvent) {
-      //do nothing as Channel Buffer is always open
+        //do nothing as Channel Buffer is always open
     }
 
     public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent event) throws Exception {
@@ -319,4 +384,6 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
 
     }
     /** End Getter/Setter methods */
+
+
 }

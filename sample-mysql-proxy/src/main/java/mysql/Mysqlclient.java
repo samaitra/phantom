@@ -13,8 +13,18 @@ import java.util.concurrent.Executors;
  */
 public class MysqlClient {
 
-    public static void main(String[] args) {
-        Connection conn = null;
+    public MysqlClient() {
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
+        for (int i=0; i < 2; i++) {
+
+            executorService.execute(new Worker());
+        }
+        executorService.shutdown();
+    }
+
+    private class Worker implements Runnable {
+        public void run() {
+            Connection conn = null;
             try {
                 String dburl = "jdbc:mysql://localhost:8080/mysql?characterEncoding=utf8&user=root&password=";
                 Class.forName("com.mysql.jdbc.Driver").newInstance();
@@ -23,8 +33,16 @@ public class MysqlClient {
                 Statement s = conn.createStatement();
                 ResultSet rs = s.executeQuery("select * from user;");
 
-                while(rs.next()){
-                    System.out.println("host :" + rs.getString("Host"));
+                if(rs.next()){
+                    System.out.println("host :" + rs.getString(1));
+                }
+
+                //testing for multiple queries
+                conn.createStatement();
+                rs = s.executeQuery("select * from user;");
+
+                if(rs.next()){
+                    System.out.println("host :" + rs.getString(1));
                 }
 
                 s.close();
@@ -32,15 +50,18 @@ public class MysqlClient {
             } catch(Exception e) {
                 e.printStackTrace();
             }finally {
-                try {
-
-                    conn.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+//                try {
+//
+//                    conn.close();
+//                } catch (Exception e) {
+//                    e.printStackTrace();
+//                }
             }
 
         }
+    }
 
-
+    public static void main(String[] args) {
+        new MysqlClient();
+    }
 }

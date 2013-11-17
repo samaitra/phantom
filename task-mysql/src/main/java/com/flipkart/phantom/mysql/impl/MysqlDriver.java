@@ -84,7 +84,7 @@ public class MysqlDriver {
             this.mysqlSocket.setTrafficClass(0x10);
             this.mysqlSocket.setKeepAlive(true);
 
-            logger.debug("Connected to mysql server at "+this.host+":"+this.port);
+            logger.info("Connected to mysql server at "+this.host+":"+this.port);
             this.mysqlIn = new BufferedInputStream(this.mysqlSocket.getInputStream(), 16384);
             this.mysqlOut = this.mysqlSocket.getOutputStream();
 
@@ -104,9 +104,11 @@ public class MysqlDriver {
                 initConnection();
                 break;
             case Flags.MODE_SEND_AUTH:
+                logger.info("Auth request to mysql "+new String(buffer.get(0)));
                 Packet.write(this.mysqlOut, buffer);
                 break;
             case Flags.MODE_SEND_QUERY:
+                logger.info("Query to mysql "+new String(buffer.get(0)));
                 Packet.write(this.mysqlOut,buffer);
                break;
             default:

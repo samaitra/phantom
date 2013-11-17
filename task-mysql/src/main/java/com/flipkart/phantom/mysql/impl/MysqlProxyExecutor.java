@@ -3,9 +3,14 @@ package com.flipkart.phantom.mysql.impl;
 import com.flipkart.phantom.task.spi.Executor;
 import com.flipkart.phantom.task.spi.RequestWrapper;
 import com.flipkart.phantom.task.spi.TaskContext;
+import com.github.jmpjct.mysql.proto.Flags;
 import com.netflix.hystrix.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Socket;
 import java.util.ArrayList;
 
 /**
@@ -16,6 +21,7 @@ import java.util.ArrayList;
  */
 public class MysqlProxyExecutor extends HystrixCommand<InputStream> implements Executor {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(MysqlProxyExecutor.class);
 
     /** request mode flag */
     int flag;
@@ -26,21 +32,22 @@ public class MysqlProxyExecutor extends HystrixCommand<InputStream> implements E
     ArrayList<byte[]> buffer;
 
     /** the proxy client */
-    private MysqlProxy proxy;
+    private MysqlProxy2 proxy;
+
+    public int mode = Flags.MODE_INIT;
 
     /** current task context */
     private TaskContext taskContext;
 
     /** only constructor uses the proxy client, task context and the mysql requestWrapper */
-    public MysqlProxyExecutor(MysqlProxy proxy, TaskContext taskContext, RequestWrapper requestWrapper) {
+    public MysqlProxyExecutor(MysqlProxy2 proxy, TaskContext taskContext, RequestWrapper requestWrapper) {
         super(
                 HystrixCommand.Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey(proxy.getGroupKey()))
                         .andCommandKey(HystrixCommandKey.Factory.asKey(proxy.getCommandKey()))
                         .andThreadPoolKey(HystrixThreadPoolKey.Factory.asKey(proxy.getThreadPoolKey()))
                         .andThreadPoolPropertiesDefaults(HystrixThreadPoolProperties.Setter().withCoreSize(proxy.getThreadPoolSize()))
-                        .andCommandPropertiesDefaults(HystrixCommandProperties.Setter().withExecutionIsolationThreadTimeoutInMilliseconds(proxy.getDriver().getOperationTimeout()))
+                        .andCommandPropertiesDefaults(HystrixCommandProperties.Setter().withExecutionIsolationThreadTimeoutInMilliseconds(proxy.getOperationTimeout()))
         );
-
         this.proxy = proxy;
         this.taskContext = taskContext;
 
@@ -50,6 +57,7 @@ public class MysqlProxyExecutor extends HystrixCommand<InputStream> implements E
         /** get necessary data required for the output */
         this.flag = mysqlRequestWrapper.getFlag();
         this.buffer = mysqlRequestWrapper.getBuffer();
+
     }
     /**
      * Interface method implementation
@@ -57,8 +65,14 @@ public class MysqlProxyExecutor extends HystrixCommand<InputStream> implements E
      * @throws Exception
      */
     @Override
-    protected InputStream run() throws Exception {
-        return proxy.doRequest(flag,buffer);
+    public InputStream run() {
+        try{
+        return this.proxy.doRequest(flag,buffer);
+
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return null;
     }
 
     /**
@@ -68,11 +82,11 @@ public class MysqlProxyExecutor extends HystrixCommand<InputStream> implements E
      */
     @Override
     protected InputStream getFallback() {
-        return proxy.fallbackRequest(flag,buffer);
+        return this.proxy.fallbackRequest(flag,buffer);
     }
 
     /** Getter/Setter methods */
-    public MysqlProxy getProxy() {
+    public MysqlProxy2 getProxy() {
         return proxy;
     }
     /** End Getter/Setter methods */

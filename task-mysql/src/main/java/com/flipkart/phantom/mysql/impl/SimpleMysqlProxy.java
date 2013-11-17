@@ -11,7 +11,7 @@ import java.util.ArrayList;
  * @date : 15/11/13
  *
  */
-public class SimpleMysqlProxy extends MysqlProxy {
+public class SimpleMysqlProxy extends MysqlProxy2 {
 
     /**
      * Abstract method implementation
@@ -47,6 +47,11 @@ public class SimpleMysqlProxy extends MysqlProxy {
     @Override
     public String getThreadPoolKey() {
         return "SimpleMysqlThreadPool";
+    }
+
+    @Override
+    public int getOperationTimeout() {
+        return 10000;
     }
 
 }

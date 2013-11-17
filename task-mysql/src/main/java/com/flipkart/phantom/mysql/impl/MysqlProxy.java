@@ -30,10 +30,10 @@ public abstract class MysqlProxy extends AbstractHandler{
      *  Init hook provided by the MysqlProxy
      */
     public void init(TaskContext context) throws Exception {
-        if (driver == null) {
+        if (this.driver == null) {
             throw new AssertionError("MysqlDriver object must be given");
         } else {
-            driver.initConnection();
+            this.driver.initConnection();
         }
     }
 
@@ -41,7 +41,7 @@ public abstract class MysqlProxy extends AbstractHandler{
      * Shutdown hooks provided by the MysqlProxy
      */
     public void shutdown(TaskContext context) throws Exception {
-        driver.shutdown();
+        this.driver.shutdown();
     }
 
     /**
@@ -49,7 +49,7 @@ public abstract class MysqlProxy extends AbstractHandler{
      */
     public InputStream doRequest(int flag,ArrayList<byte[]> buffer) throws Exception {
 
-        return driver.execute(flag,buffer);
+        return this.driver.execute(flag,buffer);
     }
 
     /**
@@ -90,7 +90,7 @@ public abstract class MysqlProxy extends AbstractHandler{
      * @see com.flipkart.phantom.task.spi.AbstractHandler#getDetails()
      */
     public String getDetails() {
-        if (driver != null) {
+        if (this.driver != null) {
             String details = "Endpoint: ";
             details += "jdbc:mysql://" + driver.getHost() + ":" + driver.getPort() + "\n";
             details += "Connection Timeout: " + driver.getConnectionTimeout() + "ms\n";

@@ -29,16 +29,13 @@
             <map>
                 <entry key="mysqlDecoder" value="mysqlDecoder" />
                 <entry key="mysqlHandler" value="mysqlChannelHandler"/>
-                <!--entry key="mysqlEncoder" value="mysqlEncoder"/-->
-
             </map>
         </property>
     </bean>
 
     <!-- Prototype scope command ChannelHandler beans. All channel handler beans MUST be of prototype bean scope-->
     <bean id="mysqlDecoder" class="com.flipkart.phantom.runtime.impl.server.netty.decoder.mysql.MysqlPacketDecoder" scope="prototype" />
-    <!--bean id="mysqlEncoder" class="org.jboss.netty.handler.codec.serialization.ObjectEncoder" scope="prototype" /-->
-    <bean id="mysqlChannelHandler" class="com.flipkart.phantom.runtime.impl.server.netty.handler.mysql.MysqlChannelHandler" scope="prototype">
+    <bean id="mysqlChannelHandler" class="com.flipkart.phantom.runtime.impl.server.netty.handler.mysql.MysqlChannelHandler2" scope="prototype">
         <property name="repository" ref="mysqlProxyRepository"/>
         <property name="defaultProxy" value="defaultProxy" />
         <property name="eventProducer" ref="serviceProxyEventProducer"/>

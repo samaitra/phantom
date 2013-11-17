@@ -10,18 +10,17 @@
     <!-- mysql proxy -->
     <bean id="sampleMysqlProxy" class="com.flipkart.phantom.mysql.impl.SimpleMysqlProxy">
         <property name="name" value="defaultProxy" />
-        <property name="driver" ref="sampleDriver" />
-
+        <!--property name="driver" ref="sampleDriver" /-->
     </bean>
 
-    <!-- mysql connection pool -->
-    <bean id="sampleDriver" class="com.flipkart.phantom.mysql.impl.MysqlDriver">
+    <!-- mysql driver -->
+    <!--bean id="sampleDriver" class="com.flipkart.phantom.mysql.impl.MysqlDriver">
         <property name="host" value="localhost" />
         <property name="port" value="3306" />
         <property name="dbname" value="test" />
         <property name="username" value="root" />
         <property name="password" value="" />
         <property name="connectionTimeout" value="10000" />
-        <property name="operationTimeout" value="2000" />
-    </bean>
+        <property name="operationTimeout" value="10000" />
+    </bean-->
 </beans>
