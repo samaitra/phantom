@@ -1,7 +1,6 @@
 package com.flipkart.phantom.mysql.impl;
 
 import java.io.InputStream;
-import java.sql.ResultSet;
 import java.util.ArrayList;
 
 /**
@@ -11,7 +10,7 @@ import java.util.ArrayList;
  * @date : 15/11/13
  *
  */
-public class SimpleMysqlProxy extends MysqlProxy2 {
+public class SimpleMysqlProxy extends MysqlProxy {
 
     /**
      * Abstract method implementation

@@ -31,7 +31,7 @@ public class MysqlProxyExecutorRepository implements ExecutorRepository {
      * @return  an {@link MysqlProxyExecutor} instance
      */
     public Executor getExecutor (String commandName, String proxyName, RequestWrapper requestWrapper)  {
-        MysqlProxy2 proxy = (MysqlProxy2) registry.getHandler(proxyName);
+        MysqlProxy proxy = (MysqlProxy) registry.getHandler(proxyName);
 
         if (proxy.isActive()) {
             return new MysqlProxyExecutor(proxy, this.taskContext, requestWrapper);

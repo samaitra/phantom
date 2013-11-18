@@ -9,8 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.Socket;
 import java.util.ArrayList;
 
 /**
@@ -31,8 +29,10 @@ public class MysqlProxyExecutor extends HystrixCommand<InputStream> implements E
 
     ArrayList<byte[]> buffer;
 
+    ArrayList<ArrayList<byte[]>> connRefBytes;
+
     /** the proxy client */
-    private MysqlProxy2 proxy;
+    private MysqlProxy proxy;
 
     public int mode = Flags.MODE_INIT;
 
@@ -40,7 +40,7 @@ public class MysqlProxyExecutor extends HystrixCommand<InputStream> implements E
     private TaskContext taskContext;
 
     /** only constructor uses the proxy client, task context and the mysql requestWrapper */
-    public MysqlProxyExecutor(MysqlProxy2 proxy, TaskContext taskContext, RequestWrapper requestWrapper) {
+    public MysqlProxyExecutor(MysqlProxy proxy, TaskContext taskContext, RequestWrapper requestWrapper) {
         super(
                 HystrixCommand.Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey(proxy.getGroupKey()))
                         .andCommandKey(HystrixCommandKey.Factory.asKey(proxy.getCommandKey()))
@@ -57,7 +57,7 @@ public class MysqlProxyExecutor extends HystrixCommand<InputStream> implements E
         /** get necessary data required for the output */
         this.flag = mysqlRequestWrapper.getFlag();
         this.buffer = mysqlRequestWrapper.getBuffer();
-
+        this.connRefBytes = mysqlRequestWrapper.getConnRefBytes();
     }
     /**
      * Interface method implementation
@@ -67,7 +67,7 @@ public class MysqlProxyExecutor extends HystrixCommand<InputStream> implements E
     @Override
     public InputStream run() {
         try{
-        return this.proxy.doRequest(flag,buffer);
+        return this.proxy.doRequest(flag,buffer,connRefBytes);
 
         }catch(Exception e){
             e.printStackTrace();
@@ -86,7 +86,7 @@ public class MysqlProxyExecutor extends HystrixCommand<InputStream> implements E
     }
 
     /** Getter/Setter methods */
-    public MysqlProxy2 getProxy() {
+    public MysqlProxy getProxy() {
         return proxy;
     }
     /** End Getter/Setter methods */

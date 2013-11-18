@@ -14,8 +14,8 @@ import java.util.concurrent.Executors;
 public class MysqlClient {
 
     public MysqlClient() {
-        ExecutorService executorService = Executors.newFixedThreadPool(2);
-        for (int i=0; i < 2; i++) {
+        ExecutorService executorService = Executors.newFixedThreadPool(1);
+        for (int i=0; i < 1; i++) {
 
             executorService.execute(new Worker());
         }
@@ -31,15 +31,7 @@ public class MysqlClient {
                 conn = DriverManager.getConnection(dburl);
 
                 Statement s = conn.createStatement();
-                ResultSet rs = s.executeQuery("select * from user;");
-
-                if(rs.next()){
-                    System.out.println("host :" + rs.getString(1));
-                }
-
-                //testing for multiple queries
-                conn.createStatement();
-                rs = s.executeQuery("select * from user;");
+                ResultSet rs = s.executeQuery("select * from user");
 
                 if(rs.next()){
                     System.out.println("host :" + rs.getString(1));

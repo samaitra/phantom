@@ -26,9 +26,7 @@ public class MysqlRequestWrapper implements RequestWrapper{
     private ArrayList<byte[]> buffer;
 
 
-
-
-    private ArrayList<byte[]> clientAuthBuffer;
+    private ArrayList<ArrayList<byte[]>> connRefBytes;
 
     /** Start Getter/Setter methods */
 
@@ -49,12 +47,12 @@ public class MysqlRequestWrapper implements RequestWrapper{
         this.buffer = buffer;
     }
 
-    public ArrayList<byte[]> getClientAuthBuffer() {
-        return clientAuthBuffer;
+    public ArrayList<ArrayList<byte[]>> getConnRefBytes() {
+        return connRefBytes;
     }
 
-    public void setClientAuthBuffer(ArrayList<byte[]> clientAuthBuffer) {
-        this.clientAuthBuffer = clientAuthBuffer;
+    public void setConnRefBytes(ArrayList<ArrayList<byte[]>> connRefBytes) {
+        this.connRefBytes = connRefBytes;
     }
 
 
