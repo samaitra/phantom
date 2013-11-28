@@ -23,6 +23,7 @@ import java.util.ArrayList;
 public abstract class MysqlProxy extends AbstractHandler {
 
     private static Logger logger = LoggerFactory.getLogger(MysqlProxy.class);
+
     private long sequenceId;
 
     public int getPort() {
@@ -97,80 +98,84 @@ public abstract class MysqlProxy extends AbstractHandler {
 
     }
 
-    public void initConnection(ArrayList<ArrayList<byte[]>> connRefBytes) throws Exception {
-
-    //TODO Need to create a connection pool
+    public MysqlConnection initConnection(ArrayList<ArrayList<byte[]>> connRefBytes) throws Exception {
 
 
-        try {
-
-            this.mysqlSocket = new Socket(this.host, this.port);
-            this.mysqlSocket.setPerformancePreferences(0, 2, 1);
-            this.mysqlSocket.setTcpNoDelay(true);
-            this.mysqlSocket.setTrafficClass(0x10);
-            this.mysqlSocket.setKeepAlive(true);
-            logger.info("Connected to mysql server at "+this.host+":"+this.port);
-            this.mysqlIn = new BufferedInputStream(this.mysqlSocket.getInputStream(), 16384);
-            this.mysqlOut = this.mysqlSocket.getOutputStream();
-
-        } catch (Exception e) {
-            throw e;
-        }
-
-        /* I am assuming an successful connection by replaying the client connRefBytes. There is a possibility
-        that in this phase there are error in mysql connection and requests may not get handled by the proxy.
-        Need to handle scenarios when proxy connection fails.
-        */
-
-        byte[] packet = Packet.read_packet(this.mysqlIn);
-        int c = 0;
-        for(ArrayList<byte[]> buf : connRefBytes){
-            logger.info("connRefBytes : "+new String(buf.get(0)));
-            Packet.write(this.mysqlOut, buf);
-
-            if(c>0){
-
-                /*
-                Writing connection queries responses in a client out file. This is to clear the Mysql Input Stream
-                for establishing connection.
-                */
-
-                boolean bufferResultSet = false;
-
-                File f = new File("client_out.log");
-                if (!f.exists()) {
-                    f.createNewFile();
-                }
-
-                OutputStream clientOut = new FileOutputStream(f);
-
-                packet = Packet.read_packet(this.mysqlIn);
-                this.buffer.add(packet);
-                this.sequenceId = Packet.getSequenceId(packet);
-
-                switch (Packet.getType(packet)) {
-                    case Flags.OK:
-                    case Flags.ERR:
-                        break;
-
-                    default:
-                        this.buffer = Packet.read_full_result_set(this.mysqlIn, clientOut, this.buffer, bufferResultSet);
-                        break;
-                }
-            }else{
-                packet = Packet.read_packet(this.mysqlIn);
-                this.buffer = new ArrayList<byte[]>();
-                this.buffer.add(packet);
-
-                if (Packet.getType(packet) != Flags.OK) {
-                    logger.debug("Auth is not okay!");
-                }
-            }
-            c++;
-
-        }
+        MysqlConnection mysqlConnection = new MysqlConnection(this.host,this.port,connRefBytes);
 
 
+//        //TODO Need to create a connection pool
+//
+//
+//        try {
+//
+//            this.mysqlSocket = new Socket(this.host, this.port);
+//            this.mysqlSocket.setPerformancePreferences(0, 2, 1);
+//            this.mysqlSocket.setTcpNoDelay(true);
+//            this.mysqlSocket.setTrafficClass(0x10);
+//            this.mysqlSocket.setKeepAlive(true);
+//            logger.info("Connected to mysql server at "+this.host+":"+this.port);
+//            this.mysqlIn = new BufferedInputStream(this.mysqlSocket.getInputStream(), 16384);
+//            this.mysqlOut = this.mysqlSocket.getOutputStream();
+//
+//        } catch (Exception e) {
+//            throw e;
+//        }
+//
+//        /* I am assuming an successful connection by replaying the client connRefBytes. There is a possibility
+//        that in this phase there are error in mysql connection and requests may not get handled by the proxy.
+//        Need to handle scenarios when proxy connection fails.
+//        */
+//
+//        byte[] packet = Packet.read_packet(this.mysqlIn);
+//        int c = 0;
+//        for(ArrayList<byte[]> buf : connRefBytes){
+//            logger.info("connRefBytes : "+new String(buf.get(0)));
+//            Packet.write(this.mysqlOut, buf);
+//
+//            if(c>0){
+//
+//                /*
+//                Writing connection queries responses in a client out file. This is to clear the Mysql Input Stream
+//                for establishing connection.
+//                */
+//
+//                boolean bufferResultSet = false;
+//
+//                File f = new File("client_out.log");
+//                if (!f.exists()) {
+//                    f.createNewFile();
+//                }
+//
+//                OutputStream clientOut = new FileOutputStream(f);
+//
+//                packet = Packet.read_packet(this.mysqlIn);
+//                this.buffer.add(packet);
+//                this.sequenceId = Packet.getSequenceId(packet);
+//
+//                switch (Packet.getType(packet)) {
+//                    case Flags.OK:
+//                    case Flags.ERR:
+//                        break;
+//
+//                    default:
+//                        this.buffer = Packet.read_full_result_set(this.mysqlIn, clientOut, this.buffer, bufferResultSet);
+//                        break;
+//                }
+//            }else{
+//                packet = Packet.read_packet(this.mysqlIn);
+//                this.buffer = new ArrayList<byte[]>();
+//                this.buffer.add(packet);
+//
+//                if (Packet.getType(packet) != Flags.OK) {
+//                    logger.debug("Auth is not okay!");
+//                }
+//            }
+//            c++;
+//
+//        }
+
+        return mysqlConnection;
 
     }
 
@@ -188,12 +193,12 @@ public abstract class MysqlProxy extends AbstractHandler {
 
     public InputStream doRequest(int flag, ArrayList<byte[]> buffer, ArrayList<ArrayList<byte[]>> connRefBytes) throws Exception {
 
-        initConnection(connRefBytes);
+        MysqlConnection mysqlConnection = initConnection(connRefBytes);
         String query = Com_Query.loadFromPacket(buffer.get(0)).query;
         logger.info("Query to mysql from proxy :" + query);
-        Packet.write(this.mysqlOut, buffer);
+        Packet.write(mysqlConnection.mysqlOut, buffer);
 
-        return this.mysqlIn;
+        return mysqlConnection.mysqlIn;
     }
 
     /**
