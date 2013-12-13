@@ -151,7 +151,7 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
         this.mysqlSocket.setTrafficClass(0x10);
         this.mysqlSocket.setKeepAlive(true);
 
-        LOGGER.info("Connected to mysql server at "+this.host+":"+this.port);
+        //LOGGER.info("Connected to mysql server at "+this.host+":"+this.port);
         this.mysqlIn = new BufferedInputStream(this.mysqlSocket.getInputStream(), 16384);
         this.mysqlOut = this.mysqlSocket.getOutputStream();
 
@@ -213,7 +213,7 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
 
         switch (flag){
             case Flags.MODE_SEND_AUTH:
-                LOGGER.info("Auth request to mysql "+new String(buffer.get(0)));
+                //LOGGER.info("Auth request to mysql "+new String(buffer.get(0)));
                 Packet.write(this.mysqlOut, buffer);
                 break;
             default:
@@ -265,7 +265,7 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
             case Flags.COM_QUERY:
                 LOGGER.debug("COM_QUERY");
                 this.query = Com_Query.loadFromPacket(packet).query;
-                LOGGER.info("my query  : "+this.query);
+                //LOGGER.info("my query  : "+this.query);
                 break;
 
             default:
@@ -310,11 +310,12 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
             this.in = (InputStream) executor.execute();
         }catch (Exception e){
             throw new RuntimeException("Error in reading server Queries Response :" + proxy + ".", e);
-        }finally {
-            // Publishes event both in case of success and failure.
-            Class eventSource = (executor == null) ? this.getClass() :((MysqlProxyExecutor)executor).getProxy().getClass();
-            eventProducer.publishEvent(executor, "init", eventSource, Mysql_HANDLER);
         }
+//          finally {
+//            // Publishes event both in case of success and failure.
+//            Class eventSource = (executor == null) ? this.getClass() :((MysqlProxyExecutor)executor).getProxy().getClass();
+//            eventProducer.publishEvent(executor, "init", eventSource, Mysql_HANDLER);
+//        }
 
         return this.in;
 

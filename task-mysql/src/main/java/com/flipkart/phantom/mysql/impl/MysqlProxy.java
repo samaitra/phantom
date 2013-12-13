@@ -3,6 +3,7 @@ package com.flipkart.phantom.mysql.impl;
 import com.flipkart.phantom.task.spi.AbstractHandler;
 import com.flipkart.phantom.task.spi.TaskContext;
 import com.github.jmpjct.mysql.proto.*;
+import org.apache.commons.pool.impl.GenericObjectPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,100 +92,30 @@ public abstract class MysqlProxy extends AbstractHandler {
 
     ArrayList<byte[]> buffer;
     Connection conn= null;
-    /**
-     * Init hook provided by the MysqlProxy
-     */
-    public void init(TaskContext context) throws Exception {
 
-    }
+    /** Properties for initializing Generic Object Pool */
+    private int poolSize =10;
+    private long maxWait = 100;
+    private int maxIdle = poolSize;
+    private int minIdle = poolSize/2;
+    private long timeBetweenEvictionRunsMillis = 20000;
 
-    public MysqlConnection initConnection(ArrayList<ArrayList<byte[]>> connRefBytes) throws Exception {
+    /** The GenericObjectPool object */
+    private GenericObjectPool<MysqlConnection> mysqlConnectionPool;
 
-
-        MysqlConnection mysqlConnection = new MysqlConnection(this.host,this.port,connRefBytes);
-
-
-//        //TODO Need to create a connection pool
-//
-//
-//        try {
-//
-//            this.mysqlSocket = new Socket(this.host, this.port);
-//            this.mysqlSocket.setPerformancePreferences(0, 2, 1);
-//            this.mysqlSocket.setTcpNoDelay(true);
-//            this.mysqlSocket.setTrafficClass(0x10);
-//            this.mysqlSocket.setKeepAlive(true);
-//            logger.info("Connected to mysql server at "+this.host+":"+this.port);
-//            this.mysqlIn = new BufferedInputStream(this.mysqlSocket.getInputStream(), 16384);
-//            this.mysqlOut = this.mysqlSocket.getOutputStream();
-//
-//        } catch (Exception e) {
-//            throw e;
-//        }
-//
-//        /* I am assuming an successful connection by replaying the client connRefBytes. There is a possibility
-//        that in this phase there are error in mysql connection and requests may not get handled by the proxy.
-//        Need to handle scenarios when proxy connection fails.
-//        */
-//
-//        byte[] packet = Packet.read_packet(this.mysqlIn);
-//        int c = 0;
-//        for(ArrayList<byte[]> buf : connRefBytes){
-//            logger.info("connRefBytes : "+new String(buf.get(0)));
-//            Packet.write(this.mysqlOut, buf);
-//
-//            if(c>0){
-//
-//                /*
-//                Writing connection queries responses in a client out file. This is to clear the Mysql Input Stream
-//                for establishing connection.
-//                */
-//
-//                boolean bufferResultSet = false;
-//
-//                File f = new File("client_out.log");
-//                if (!f.exists()) {
-//                    f.createNewFile();
-//                }
-//
-//                OutputStream clientOut = new FileOutputStream(f);
-//
-//                packet = Packet.read_packet(this.mysqlIn);
-//                this.buffer.add(packet);
-//                this.sequenceId = Packet.getSequenceId(packet);
-//
-//                switch (Packet.getType(packet)) {
-//                    case Flags.OK:
-//                    case Flags.ERR:
-//                        break;
-//
-//                    default:
-//                        this.buffer = Packet.read_full_result_set(this.mysqlIn, clientOut, this.buffer, bufferResultSet);
-//                        break;
-//                }
-//            }else{
-//                packet = Packet.read_packet(this.mysqlIn);
-//                this.buffer = new ArrayList<byte[]>();
-//                this.buffer.add(packet);
-//
-//                if (Packet.getType(packet) != Flags.OK) {
-//                    logger.debug("Auth is not okay!");
-//                }
-//            }
-//            c++;
-//
-//        }
-
-        return mysqlConnection;
-
-    }
-
-
-    /**
-     * Shutdown hooks provided by the MysqlProxy
-     */
-    public void shutdown(TaskContext context) throws Exception {
-
+    public void initConnectionPool(ArrayList<ArrayList<byte[]>> connRefBytes){
+        //Create pool
+        this.mysqlConnectionPool = new GenericObjectPool<MysqlConnection>(
+                new MysqlConnectionObjectFactory(this,connRefBytes),
+                this.poolSize,
+                GenericObjectPool.WHEN_EXHAUSTED_GROW,
+                this.maxWait ,
+                this.maxIdle ,
+                this.minIdle , false, false,
+                this.timeBetweenEvictionRunsMillis,
+                GenericObjectPool.DEFAULT_NUM_TESTS_PER_EVICTION_RUN,
+                GenericObjectPool.DEFAULT_MIN_EVICTABLE_IDLE_TIME_MILLIS,
+                true);
     }
 
     /**
@@ -192,10 +123,14 @@ public abstract class MysqlProxy extends AbstractHandler {
      */
 
     public InputStream doRequest(int flag, ArrayList<byte[]> buffer, ArrayList<ArrayList<byte[]>> connRefBytes) throws Exception {
+        //TODO create separate mysqlConnectionPool for individual users
+        if(this.mysqlConnectionPool == null){
+           initConnectionPool(connRefBytes);
+        }
 
-        MysqlConnection mysqlConnection = initConnection(connRefBytes);
+        MysqlConnection mysqlConnection = this.mysqlConnectionPool.borrowObject();
         String query = Com_Query.loadFromPacket(buffer.get(0)).query;
-        logger.info("Query to mysql from proxy :" + query);
+        //logger.info("Query to mysql from proxy :" + query);
         Packet.write(mysqlConnection.mysqlOut, buffer);
 
         return mysqlConnection.mysqlIn;
@@ -283,8 +218,6 @@ public abstract class MysqlProxy extends AbstractHandler {
     public void setOperationTimeout(int operationTimeout) {
         this.operationTimeout = operationTimeout;
     }
-
-
     /** getters / setters */
 
 

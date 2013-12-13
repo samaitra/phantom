@@ -51,7 +51,7 @@ public class MysqlConnection {
             this.mysqlSocket.setTcpNoDelay(true);
             this.mysqlSocket.setTrafficClass(0x10);
             this.mysqlSocket.setKeepAlive(true);
-            logger.info("Connected to mysql server at "+host+":"+port);
+            //logger.info("Connected to mysql server at "+host+":"+port);
             this.mysqlIn = new BufferedInputStream(this.mysqlSocket.getInputStream(), 16384);
             this.mysqlOut = this.mysqlSocket.getOutputStream();
 
@@ -67,7 +67,7 @@ public class MysqlConnection {
         byte[] packet = Packet.read_packet(this.mysqlIn);
         int c = 0;
         for(ArrayList<byte[]> buf : connRefBytes){
-            logger.info("connRefBytes : "+new String(buf.get(0)));
+            //logger.info("connRefBytes : "+new String(buf.get(0)));
             Packet.write(this.mysqlOut, buf);
 
             if(c>0){
