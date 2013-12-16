@@ -14,8 +14,8 @@ import java.util.concurrent.Executors;
 public class MysqlClient {
 
     public MysqlClient() {
-        ExecutorService executorService = Executors.newFixedThreadPool(1);
-        for (int i=0; i < 1; i++) {
+        ExecutorService executorService = Executors.newFixedThreadPool(10);
+        for (int i=0; i < 10; i++) {
 
             executorService.execute(new Worker());
         }
@@ -36,6 +36,14 @@ public class MysqlClient {
                 if(rs.next()){
                     System.out.println("host :" + rs.getString(1));
                 }
+
+                rs = s.executeQuery("select count(*) from user");
+
+                if(rs.next()){
+                    System.out.println("count :" + rs.getString(1));
+                }
+
+
 
                 s.close();
 

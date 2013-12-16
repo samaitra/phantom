@@ -11,6 +11,7 @@ import java.io.*;
 import java.net.Socket;
 import java.sql.Connection;
 import java.util.ArrayList;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  /**
@@ -103,7 +104,24 @@ public abstract class MysqlProxy extends AbstractHandler {
     /** The GenericObjectPool object */
     private GenericObjectPool<MysqlConnection> mysqlConnectionPool;
 
-    public void initConnectionPool(ArrayList<ArrayList<byte[]>> connRefBytes){
+
+    /** The Mysql Connection pool map */
+    private ConcurrentHashMap<String,GenericObjectPool<MysqlConnection>> mysqlConnectionPoolMap = new ConcurrentHashMap<String, GenericObjectPool<MysqlConnection>>();
+
+
+    @Override
+    public void init(TaskContext context) throws Exception {
+
+    }
+
+    @Override
+    public void shutdown(TaskContext context) throws Exception {
+
+    }
+
+
+    public void initConnectionPool(String connectionPoolKey, ArrayList<ArrayList<byte[]>> connRefBytes){
+
         //Create pool
         this.mysqlConnectionPool = new GenericObjectPool<MysqlConnection>(
                 new MysqlConnectionObjectFactory(this,connRefBytes),
@@ -116,33 +134,45 @@ public abstract class MysqlProxy extends AbstractHandler {
                 GenericObjectPool.DEFAULT_NUM_TESTS_PER_EVICTION_RUN,
                 GenericObjectPool.DEFAULT_MIN_EVICTABLE_IDLE_TIME_MILLIS,
                 true);
+
+        // Add connection pool object in mysql connection pool map.
+        this.mysqlConnectionPoolMap.put(connectionPoolKey,this.mysqlConnectionPool);
     }
 
     /**
      * The main method which makes the Mysql request
      */
 
-    public InputStream doRequest(int flag, ArrayList<byte[]> buffer, ArrayList<ArrayList<byte[]>> connRefBytes) throws Exception {
-        //TODO create separate mysqlConnectionPool for individual users
-        if(this.mysqlConnectionPool == null){
-           initConnectionPool(connRefBytes);
+    public InputStream doRequest(MysqlRequestWrapper mysqlRequestWrapper) throws Exception {
+
+
+        ArrayList<byte[]> buffer = mysqlRequestWrapper.getBuffer();
+        ArrayList<ArrayList<byte[]>> connRefBytes = mysqlRequestWrapper.getConnRefBytes();
+
+        //extracting user credentials as key for mysql connection pool map.
+        String connectionPoolKey = new String(connRefBytes.get(0).get(0));
+
+        if(this.mysqlConnectionPoolMap.get(connectionPoolKey) == null){
+            initConnectionPool(connectionPoolKey,connRefBytes);
         }
 
-        MysqlConnection mysqlConnection = this.mysqlConnectionPool.borrowObject();
+        MysqlConnection mysqlConnection = this.mysqlConnectionPoolMap.get(connectionPoolKey).borrowObject();
         String query = Com_Query.loadFromPacket(buffer.get(0)).query;
+
         //logger.info("Query to mysql from proxy :" + query);
         Packet.write(mysqlConnection.mysqlOut, buffer);
 
         return mysqlConnection.mysqlIn;
     }
 
+
     /**
      * Abstract fallback request method
      *
-     * @param flag Flag Mysql request state
+     * @param mysqlRequestWrapper  Mysql request
      * @return ResultSet response after executing the fallback
      */
-    public abstract InputStream fallbackRequest(int flag, ArrayList<byte[]> buffer);
+    public abstract InputStream fallbackRequest(MysqlRequestWrapper mysqlRequestWrapper);
 
     /**
      * Abstract method which gives group key

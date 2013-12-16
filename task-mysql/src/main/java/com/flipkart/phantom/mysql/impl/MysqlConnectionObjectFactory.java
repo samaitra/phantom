@@ -8,7 +8,13 @@ import java.util.ArrayList;
 
 
 /**
- * Created by saikat on 13/12/13.
+ * <code>MysqlConnectionObjectFactory</code> is a @link{PoolableObjectFactory} for Socket instances meant to be used with {@link org.apache.commons.pool.impl.GenericObjectPool}
+ * It is initialized with a Mysql proxy or it's parameters and is passed to a GenericObjectPool object
+ *
+ * @author samaitra
+ * @version 1.0
+ * @date : 16/11/13
+ *
  */
 public class MysqlConnectionObjectFactory implements PoolableObjectFactory<MysqlConnection> {
 
@@ -31,9 +37,18 @@ public class MysqlConnectionObjectFactory implements PoolableObjectFactory<Mysql
     /** Logger for this class*/
     private static final Logger LOGGER = LoggerFactory.getLogger(MysqlConnectionObjectFactory.class);
 
+    /**
+     * Interface method implementation. Creates and returns a new {@link com.flipkart.phantom.mysql.impl.MysqlConnection}
+     * @see org.apache.commons.pool.PoolableObjectFactory#makeObject()
+     */
     public MysqlConnection makeObject() throws Exception {
        return new MysqlConnection(mysqlProxy.getHost(),mysqlProxy.getPort(),this.connRefBytes);
     }
+
+    /**
+     * Interface method implementation. Closes the specified Mysql socket instance
+     * @see org.apache.commons.pool.PoolableObjectFactory#destroyObject(Object)
+     */
 
     public void destroyObject(MysqlConnection conn) throws Exception {
         LOGGER.info("Closing a mysql connection for server : {} at port : {}", this.getMysqlProxy().getHost(), this.getMysqlProxy().getPort());
@@ -41,12 +56,22 @@ public class MysqlConnectionObjectFactory implements PoolableObjectFactory<Mysql
     }
 
     /**
-     * Interface method implementation. Does nothing
-     * @see org.apache.commons.pool.PoolableObjectFactory#activateObject(Object)
+     * Interface method implementation. Checks if the socket is open and then attempts to set Mysql specific socket properties.
+     * An error in any of these operations will invalidate the specified Mysql Socket.
+     * @see org.apache.commons.pool.PoolableObjectFactory#validateObject(Object)
      */
     public boolean validateObject(MysqlConnection conn) {
-    //TODO implement validateObject
-    return true;
+        if (conn.mysqlSocket.isClosed()) {
+            return false;
+        }
+        try {
+            conn.mysqlSocket.setSoLinger(false, 0);
+            conn.mysqlSocket.setTcpNoDelay(true);
+            return true;
+        } catch (Exception e) {
+            LOGGER.info("Mysql connection is not valid for server : {} at port : {}", this.getMysqlProxy().getHost(), this.getMysqlProxy().getPort());
+            return false;
+        }
     }
 
     /**

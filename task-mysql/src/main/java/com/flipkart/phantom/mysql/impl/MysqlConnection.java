@@ -72,20 +72,8 @@ public class MysqlConnection {
 
             if(c>0){
 
-                /*
-                Writing connection queries responses in a client out file. This is to clear the Mysql Input Stream
-                for establishing connection.
-                */
-
                 boolean bufferResultSet = false;
-
-                File f = new File("client_out.log");
-                if (!f.exists()) {
-                    f.createNewFile();
-                }
-
-                OutputStream clientOut = new FileOutputStream(f);
-
+                OutputStream clientOut = new ByteArrayOutputStream();
                 packet = Packet.read_packet(this.mysqlIn);
                 this.buffer.add(packet);
                 this.sequenceId = Packet.getSequenceId(packet);

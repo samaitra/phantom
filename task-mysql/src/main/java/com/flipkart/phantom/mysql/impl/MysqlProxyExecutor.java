@@ -21,23 +21,13 @@ public class MysqlProxyExecutor extends HystrixCommand<InputStream> implements E
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MysqlProxyExecutor.class);
 
-    /** request mode flag */
-    int flag;
-
-    /** data */
-    byte[] data;
-
-    ArrayList<byte[]> buffer;
-
-    ArrayList<ArrayList<byte[]>> connRefBytes;
-
     /** the proxy client */
     private MysqlProxy proxy;
 
-    public int mode = Flags.MODE_INIT;
-
     /** current task context */
     private TaskContext taskContext;
+
+    MysqlRequestWrapper mysqlRequestWrapper;
 
     /** only constructor uses the proxy client, task context and the mysql requestWrapper */
     public MysqlProxyExecutor(MysqlProxy proxy, TaskContext taskContext, RequestWrapper requestWrapper) {
@@ -52,12 +42,8 @@ public class MysqlProxyExecutor extends HystrixCommand<InputStream> implements E
         this.taskContext = taskContext;
 
         /** Get the Mysql Request */
-        MysqlRequestWrapper mysqlRequestWrapper = (MysqlRequestWrapper) requestWrapper;
+       this.mysqlRequestWrapper = (MysqlRequestWrapper) requestWrapper;
 
-        /** get necessary data required for the output */
-        this.flag = mysqlRequestWrapper.getFlag();
-        this.buffer = mysqlRequestWrapper.getBuffer();
-        this.connRefBytes = mysqlRequestWrapper.getConnRefBytes();
     }
     /**
      * Interface method implementation
@@ -67,8 +53,7 @@ public class MysqlProxyExecutor extends HystrixCommand<InputStream> implements E
     @Override
     public InputStream run() {
         try{
-        return this.proxy.doRequest(flag,buffer,connRefBytes);
-
+        return this.proxy.doRequest(this.mysqlRequestWrapper);
         }catch(Exception e){
             e.printStackTrace();
         }
@@ -82,7 +67,7 @@ public class MysqlProxyExecutor extends HystrixCommand<InputStream> implements E
      */
     @Override
     protected InputStream getFallback() {
-        return this.proxy.fallbackRequest(flag,buffer);
+        return this.proxy.fallbackRequest(this.mysqlRequestWrapper);
     }
 
     /** Getter/Setter methods */

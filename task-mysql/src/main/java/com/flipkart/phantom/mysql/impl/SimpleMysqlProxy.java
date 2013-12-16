@@ -1,5 +1,7 @@
 package com.flipkart.phantom.mysql.impl;
 
+import com.flipkart.phantom.task.spi.TaskContext;
+
 import java.io.InputStream;
 import java.util.ArrayList;
 
@@ -14,10 +16,10 @@ public class SimpleMysqlProxy extends MysqlProxy {
 
     /**
      * Abstract method implementation
-     * @see com.flipkart.phantom.mysql.impl.MysqlProxy#fallbackRequest(int,ArrayList<byte[]>)
+     * @see com.flipkart.phantom.mysql.impl.MysqlProxy#fallbackRequest(com.flipkart.phantom.mysql.impl.MysqlRequestWrapper)
      */
     @Override
-    public InputStream fallbackRequest(int flag , ArrayList<byte[]> buffer) {
+    public InputStream fallbackRequest(MysqlRequestWrapper mysqlRequestWrapper  ) {
         return null;
     }
 
@@ -52,5 +54,6 @@ public class SimpleMysqlProxy extends MysqlProxy {
     public int getOperationTimeout() {
         return 10000;
     }
+
 
 }
