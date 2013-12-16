@@ -9,15 +9,17 @@ import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
 
-/**
- * Created with IntelliJ IDEA.
- * User: saikat
- * Date: 27/11/13
- * Time: 12:18 PM
- * To change this template use File | Settings | File Templates.
+
+ /**
+ *  Class for Mysql Connection.
+ *
+ * @author : samaitra
+ * @version : 1.0
+ * @date : 15/11/13
  */
 public class MysqlConnection {
 
+     /** Logger for this class*/
     private static Logger logger = LoggerFactory.getLogger(MysqlConnection.class);
 
 
@@ -59,7 +61,7 @@ public class MysqlConnection {
             throw e;
         }
 
-        /* I am assuming an successful connection by replaying the client connRefBytes. There is a possibility
+        /* Assuming an successful connection by replaying the client connRefBytes. There is a possibility
         that in this phase there are error in mysql connection and requests may not get handled by the proxy.
         Need to handle scenarios when proxy connection fails.
         */
