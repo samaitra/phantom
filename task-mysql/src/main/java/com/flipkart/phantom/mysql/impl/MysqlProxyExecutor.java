@@ -55,7 +55,7 @@ public class MysqlProxyExecutor extends HystrixCommand<InputStream> implements E
         try{
         return this.proxy.doRequest(this.mysqlRequestWrapper);
         }catch(Exception e){
-            e.printStackTrace();
+            LOGGER.error("Error while making mysql request : " + e.getMessage(),e);
         }
         return null;
     }

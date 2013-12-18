@@ -213,7 +213,6 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
 
         switch (flag){
             case Flags.MODE_SEND_AUTH:
-                //LOGGER.info("Auth request to mysql "+new String(buffer.get(0)));
                 Packet.write(this.mysqlOut, buffer);
                 break;
             default:
@@ -250,22 +249,17 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
 
         switch (Packet.getType(packet)) {
             case Flags.COM_QUIT:
-                LOGGER.debug("COM_QUIT");
-                LOGGER.info("Mysql connection quit query.");
                 this.halt(messageEvent);
                 break;
 
             // Extract out the new default schema
             case Flags.COM_INIT_DB:
-                LOGGER.debug("COM_INIT_DB");
                 this.schema = Com_Initdb.loadFromPacket(packet).schema;
                 break;
 
             // Query
             case Flags.COM_QUERY:
-                LOGGER.debug("COM_QUERY");
                 this.query = Com_Query.loadFromPacket(packet).query;
-                //LOGGER.info("my query  : "+this.query);
                 break;
 
             default:
@@ -285,7 +279,6 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
 
     private InputStream executeQueries(ChannelHandlerContext ctx, int flag, ArrayList<byte[]> buffer) throws Exception{
 
-        //dirty hack to check if connection has been established before sending queries to Mysqlproxy
         if(this.count<7){
 
             /* Adding client connection queries buffer to connRefBytes. This object will be forwarded to
@@ -311,11 +304,6 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
         }catch (Exception e){
             throw new RuntimeException("Error in reading server Queries Response :" + proxy + ".", e);
         }
-//          finally {
-//            // Publishes event both in case of success and failure.
-//            Class eventSource = (executor == null) ? this.getClass() :((MysqlProxyExecutor)executor).getProxy().getClass();
-//            eventProducer.publishEvent(executor, "init", eventSource, Mysql_HANDLER);
-//        }
 
         return this.in;
 
