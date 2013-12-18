@@ -26,50 +26,15 @@ public abstract class MysqlProxy extends AbstractHandler {
 
     private static Logger logger = LoggerFactory.getLogger(MysqlProxy.class);
 
-    private long sequenceId;
-
-    public int getPort() {
-        return port;
-    }
-
-    public void setPort(int port) {
-        this.port = port;
-    }
-
-    public String getHost() {
-        return host;
-    }
-
-    public void setHost(String host) {
-        this.host = host;
-    }
-
     /**
      * Host to connect to
      */
-    public String host = "localhost";
+    public String host;
 
     /**
      * port to connect to
      */
-    public int port = 3306;
-
-    /**
-     * mysql socket to connect mysql server
-     */
-    public Socket mysqlSocket = null;
-
-    /**
-     * mysql socket input stream
-     */
-
-    public InputStream mysqlIn = null;
-
-    /**
-     * mysql socket output stream
-     */
-
-    public OutputStream mysqlOut = null;
+    public int port;
 
     /**
      * The default thread pool size
@@ -89,17 +54,17 @@ public abstract class MysqlProxy extends AbstractHandler {
     /**
      * socket timeout in milis
      */
-    private int operationTimeout = 10000;
+    private int operationTimeout;
 
     ArrayList<byte[]> buffer;
-    Connection conn= null;
+    Connection conn = null;
 
     /** Properties for initializing Generic Object Pool */
-    private int poolSize =10;
-    private long maxWait = 100;
+    private int poolSize;
+    private long maxWait;
     private int maxIdle = poolSize;
     private int minIdle = poolSize/2;
-    private long timeBetweenEvictionRunsMillis = 20000;
+    private long timeBetweenEvictionRunsMillis;
 
     /** The GenericObjectPool object */
     private GenericObjectPool<MysqlConnection> mysqlConnectionPool;
@@ -204,9 +169,7 @@ public abstract class MysqlProxy extends AbstractHandler {
         return this.threadPoolSize;
     }
 
-    public abstract int getOperationTimeout();
-
-    /**
+     /**
      * Abstract method implementation
      *
      * @see com.flipkart.phantom.task.spi.AbstractHandler#getDetails()
@@ -233,6 +196,24 @@ public abstract class MysqlProxy extends AbstractHandler {
     /**
      * getters / setters
      */
+
+    public int getPort() {
+        return port;
+    }
+
+    public void setPort(int port) {
+        this.port = port;
+    }
+
+    public String getHost() {
+        return host;
+    }
+
+    public void setHost(String host) {
+        this.host = host;
+    }
+
+
     public void setName(String name) {
         this.name = name;
     }
@@ -245,9 +226,54 @@ public abstract class MysqlProxy extends AbstractHandler {
         this.threadPoolSize = threadPoolSize;
     }
 
+    public int getOperationTimeout() {
+        return operationTimeout;
+    }
+
     public void setOperationTimeout(int operationTimeout) {
         this.operationTimeout = operationTimeout;
     }
+
+    public long getMaxWait() {
+        return maxWait;
+    }
+
+    public void setMaxWait(long maxWait) {
+        this.maxWait = maxWait;
+    }
+
+    public int getPoolSize() {
+        return poolSize;
+    }
+
+    public void setPoolSize(int poolSize) {
+        this.poolSize = poolSize;
+    }
+
+    public int getMaxIdle() {
+        return maxIdle;
+    }
+
+    public void setMaxIdle(int maxIdle) {
+        this.maxIdle = maxIdle;
+    }
+
+    public int getMinIdle() {
+        return minIdle;
+    }
+
+    public void setMinIdle(int minIdle) {
+        this.minIdle = minIdle;
+    }
+
+    public long getTimeBetweenEvictionRunsMillis() {
+        return timeBetweenEvictionRunsMillis;
+    }
+
+    public void setTimeBetweenEvictionRunsMillis(long timeBetweenEvictionRunsMillis) {
+        this.timeBetweenEvictionRunsMillis = timeBetweenEvictionRunsMillis;
+    }
+
     /** getters / setters */
 
 
