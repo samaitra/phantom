@@ -18,7 +18,6 @@ package com.flipkart.phantom.http.impl;
 
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.conn.scheme.PlainSocketFactory;
@@ -29,9 +28,12 @@ import org.apache.http.impl.conn.PoolingClientConnectionManager;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
+import org.apache.http.protocol.HTTP;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Semaphore;
 
 /**
@@ -43,11 +45,16 @@ import java.util.concurrent.Semaphore;
  */
 public class HttpConnectionPool {
 
+    /** Default settings for forwarding Http headers*/
+    public static final boolean FORWARD_HEADERS = false;
+    
+    /** */
+    
     /** logger */
     private static Logger logger = LoggerFactory.getLogger(HttpConnectionPool.class);
 
     /** The HTTP client */
-    private HttpClient client;
+    private DefaultHttpClient client;
 
     /** Host to connect to */
     private String host = "localhost";
@@ -73,6 +80,12 @@ public class HttpConnectionPool {
     /** the semaphore to separate the process queue */
     private Semaphore processQueue;
 
+    /** Headers which can be set as part of init */
+    private Map<String, String> headers;
+
+    /** Setting for forwarding Http headers*/
+    private boolean forwardHeaders = HttpConnectionPool.FORWARD_HEADERS;
+    
     /**
      * Initialize the connection pool
      */
@@ -83,7 +96,9 @@ public class HttpConnectionPool {
 
         // create scheme
         SchemeRegistry schemeRegistry = new SchemeRegistry();
-        schemeRegistry.register(new Scheme(this.secure ? "https" : "http", port, PlainSocketFactory.getSocketFactory()));
+        // registry both http and https schemes
+        schemeRegistry.register(new Scheme("http", port, PlainSocketFactory.getSocketFactory()));
+        schemeRegistry.register(new Scheme("https", port, PlainSocketFactory.getSocketFactory()));
 
         // create connection manager
         PoolingClientConnectionManager cm = new PoolingClientConnectionManager(schemeRegistry);
@@ -112,7 +127,8 @@ public class HttpConnectionPool {
      * @param request HttpRequestBase object
      * @return response HttpResponse object
      */
-    public HttpResponse execute(HttpRequestBase request) throws Exception {
+    public HttpResponse execute(HttpRequestBase request, List<Map.Entry<String,String>> headers) throws Exception {
+        setRequestHeaders(request, headers);
         logger.debug("Sending request: "+request.getURI());
         if (processQueue.tryAcquire()) {
             HttpResponse response;
@@ -126,6 +142,32 @@ public class HttpConnectionPool {
             return response;
         } else {
             throw new Exception("Process queue full!");
+        }
+    }
+
+    /**
+     * This method sets the headers to the http request base. This implementation adds the custom headers configured on this pool and subsequently adds
+     * the headers that came with the specified Http request if {@link HttpConnectionPool#isForwardHeaders()} is set to 'true' and in this case sets the
+     * {@link HTTP#TARGET_HOST} to the the value <HttpConnectionPool{@link #getHost()}:HttpConnectionPool{@link #getPort()}. Sub-types may override this method
+     * to change this behavior.
+     * 
+     * @param request {@link HttpRequestBase} to add headers to.
+     * @param requestHeaders the List of header tuples which are added to the request
+     */
+    protected void setRequestHeaders(HttpRequestBase request, List<Map.Entry<String,String>> requestHeaders) {
+        if(this.headers != null && this.headers.isEmpty()) {
+            for(String headerKey : this.headers.keySet()) {
+                request.addHeader(headerKey, this.headers.get(headerKey));
+            }
+        }
+        if (this.isForwardHeaders()) { // forward request headers only if specified
+	        if(requestHeaders != null && !requestHeaders.isEmpty()) {
+	            for(Map.Entry<String,String> headerMap : requestHeaders) {
+	                request.addHeader(headerMap.getKey(), headerMap.getValue());
+	            }
+	        }
+	        // replace "Host" header with the that of the real target host
+	        request.setHeader(HTTP.TARGET_HOST, this.getHost() + ":" + this.getPort());
         }
     }
 
@@ -195,6 +237,20 @@ public class HttpConnectionPool {
     public void setRequestQueueSize(int requestQueueSize) {
         this.requestQueueSize = requestQueueSize;
     }
+
+    public Map<String,String> getHeaders() {
+        return headers;
+    }
+
+    public void setHeaders(Map<String,String> headers) {
+        this.headers = headers;
+    }
+	public boolean isForwardHeaders() {
+		return this.forwardHeaders;
+	}
+	public void setForwardHeaders(boolean forwardHeaders) {
+		this.forwardHeaders = forwardHeaders;
+	}        
     /** Getters / Setters */
 
 }

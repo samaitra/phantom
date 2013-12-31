@@ -248,9 +248,14 @@ public class UDSOIOServer extends AbstractNetworkServer {
                 throw new RuntimeException("Error in processing command : " + e.getMessage(), e);
             } finally {
                 // Publishes event both in case of success and failure.
-                Class eventSource = (executor == null) ? this.getClass() : executor.getTaskHandler().getClass();
+                final String requestID = readCommand.getCommandParams().get("requestID");
+                Class eventSource = (executor == null) ? this.getClass() : executor.getClass();
                 String commandName = (readCommand == null) ? null : readCommand.getCommand();
-                eventProducer.publishEvent(executor, commandName, eventSource, COMMAND_HANDLER);
+                if (eventProducer !=null) 
+                    eventProducer.publishEvent(executor, commandName, eventSource, COMMAND_HANDLER, requestID);
+                else
+                    LOGGER.debug("eventProducer not set, not publishing event");
+
                 if (client !=null) {
                     try {
                         client.close();

@@ -21,6 +21,8 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Future;
@@ -40,7 +42,7 @@ public class TaskContextImpl implements TaskContext {
     private static final String GET_CONFIG_COMMAND = "getConfig";
 
     /** Host name for this TaskContext */
-    private String hostName;
+    private static String hostName;
 
     /** ObjectMapper instance */
     private ObjectMapper objectMapper = new ObjectMapper();
@@ -48,6 +50,15 @@ public class TaskContextImpl implements TaskContext {
 
     /** The TaskHandlerExecutorRepository instance for getting thrift handler executor instances */
     private TaskHandlerExecutorRepository executorRepository;
+
+    static
+    {
+        try {
+            hostName = InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            LOGGER.error("Unable to find host name", e);
+        }
+    }
 
     /**
      * Gets the config from the ConfigTaskHandler (@link{GET_CONFIG_COMMAND}).
@@ -103,8 +114,7 @@ public class TaskContextImpl implements TaskContext {
             }
 
             tsdbDataParams.put("value", String.valueOf(diff));
-            // Commenting just for verification will remove this function and reference in the next checkin
-            //this.executeCommand("sendMetric", null, tsdbDataParams);
+            this.executeCommand("sendMetric", null, tsdbDataParams);
         } catch (Exception e) {
             LOGGER.error("Exception while profiling agent command", e);
         }
@@ -122,6 +132,10 @@ public class TaskContextImpl implements TaskContext {
     }
     public void setObjectMapper(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
+    }
+    @Override
+    public String getHostName() {
+        return hostName;
     }
     /** End Getter/Setter methods */
 }
