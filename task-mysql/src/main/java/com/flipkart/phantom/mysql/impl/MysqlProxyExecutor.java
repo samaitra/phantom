@@ -33,7 +33,7 @@ public class MysqlProxyExecutor extends HystrixCommand<InputStream> implements E
     public MysqlProxyExecutor(MysqlProxy proxy, TaskContext taskContext, RequestWrapper requestWrapper) {
         super(
                 HystrixCommand.Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey(proxy.getGroupKey()))
-                        .andCommandKey(HystrixCommandKey.Factory.asKey(proxy.getCommandKey()))
+                        .andCommandKey(HystrixCommandKey.Factory.asKey(proxy.getCommandKey()+((MysqlRequestWrapper)requestWrapper).getCommandKey()))
                         .andThreadPoolKey(HystrixThreadPoolKey.Factory.asKey(proxy.getThreadPoolKey()))
                         .andThreadPoolPropertiesDefaults(HystrixThreadPoolProperties.Setter().withCoreSize(proxy.getThreadPoolSize()))
                         .andCommandPropertiesDefaults(HystrixCommandProperties.Setter().withExecutionIsolationThreadTimeoutInMilliseconds(proxy.getOperationTimeout()))

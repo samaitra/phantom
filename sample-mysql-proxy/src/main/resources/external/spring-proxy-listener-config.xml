@@ -39,6 +39,8 @@
         <property name="repository" ref="mysqlProxyRepository"/>
         <property name="defaultProxy" value="defaultProxy" />
         <property name="eventProducer" ref="serviceProxyEventProducer"/>
+        <property name="host" value="localhost" />
+        <property name="port" value="3306" />
     </bean>
 
     <!-- The executor repository for handling requests to MysqlProxy -->
@@ -50,4 +52,6 @@
     <!-- the registry of MysqlProxies -->
     <bean id="mysqlProxyRegistry" class="com.flipkart.phantom.mysql.impl.registry.MysqlProxyRegistry" />
 
+    <!-- service proxy Event Producer -->
+    <bean id="serviceProxyEventProducer" class="com.flipkart.phantom.event.ServiceProxyEventProducer" />
 </beans>

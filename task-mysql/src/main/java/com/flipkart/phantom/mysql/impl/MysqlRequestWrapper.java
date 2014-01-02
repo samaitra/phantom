@@ -28,6 +28,9 @@ public class MysqlRequestWrapper implements RequestWrapper{
 
     private ArrayList<ArrayList<byte[]>> connRefBytes;
 
+    /** Mysql command key (type of sql query) */
+    private  String commandKey;
+
     /** Start Getter/Setter methods */
 
     public int getFlag() {
@@ -55,6 +58,13 @@ public class MysqlRequestWrapper implements RequestWrapper{
         this.connRefBytes = connRefBytes;
     }
 
+    public String getCommandKey() {
+        return commandKey;
+    }
+
+    public void setCommandKey(String commandKey) {
+        this.commandKey = commandKey;
+    }
 
 /**End Getter/Setter methods */
 

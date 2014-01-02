@@ -8,12 +8,12 @@
     <parent>
         <artifactId>phantom</artifactId>
         <groupId>com.flipkart</groupId>
-        <version>1.1.7</version>
+        <version>1.2.3</version>
     </parent>
 
     <groupId>com.flipkart.phantom</groupId>
     <artifactId>channel-handler-mysql</artifactId>
-    <version>1.1.7</version>
+    <version>1.2.3</version>
     <name>Mysql Channel Handlers</name>
     <description>Mysql Channel Handlers</description>
 
@@ -34,7 +34,7 @@
         <dependency>
             <groupId>com.flipkart.phantom</groupId>
             <artifactId>task-mysql</artifactId>
-            <version>1.1.7</version>
+            <version>1.2.3</version>
         </dependency>
 
         <dependency>

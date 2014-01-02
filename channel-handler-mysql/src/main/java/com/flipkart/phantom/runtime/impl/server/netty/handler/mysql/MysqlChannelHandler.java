@@ -33,10 +33,10 @@ import java.util.Map;
 public class MysqlChannelHandler extends SimpleChannelHandler implements InitializingBean {
 
     /** Host to connect to */
-    public String host = "localhost";
+    public String host;
 
     /** port to connect to */
-    public int port = 3306;
+    public int port;
 
     /** mysql socket to connect mysql server */
     public Socket mysqlSocket = null;
@@ -81,12 +81,21 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
     private InputStream in = null;
 
     private String query;
+
+    private String commandKey;
+
     public boolean bufferResultSet = true;
+
     private long sequenceId;
+
     private String schema;
+
     private Executor executor;
+
     private String proxy;
+
     private int count=0;
+
     private ArrayList<ArrayList<byte[]>> connRefBytes = new ArrayList<ArrayList<byte[]>>();
     /**
      * Interface method implementation. Checks if all mandatory properties have been set
@@ -297,6 +306,9 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
         executorMysqlRequest.setFlag(flag);
         executorMysqlRequest.setBuffer(buffer);
         executorMysqlRequest.setConnRefBytes(this.connRefBytes);
+        this.commandKey = getQueryCommand(this.query);
+        executorMysqlRequest.setCommandKey(this.commandKey);
+
         String proxy = this.proxyMap.get(MysqlChannelHandler.ALL_ROUTES);
         Executor executor = this.repository.getExecutor(proxy,proxy,executorMysqlRequest);
         try{
@@ -347,6 +359,13 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
         event.getChannel().close();
     }
 
+    public String getQueryCommand(String query){
+        query = query.trim();
+        int i = query.indexOf(' ');
+        String command = query.substring(0, i);
+        command = command.toUpperCase();
+        return command;
+    }
 
     /** Start Getter/Setter methods */
 
@@ -374,11 +393,24 @@ public class MysqlChannelHandler extends SimpleChannelHandler implements Initial
     public void setDefaultProxy(String defaultProxy) {
         this.defaultProxy = defaultProxy;
     }
-
     public void setEventProducer(ServiceProxyEventProducer eventProducer) {
         this.eventProducer = eventProducer;
 
     }
+    public String getHost() {
+        return host;
+    }
+    public void setHost(String host) {
+        this.host = host;
+    }
+    public int getPort() {
+        return port;
+    }
+    public void setPort(int port) {
+        this.port = port;
+    }
+
+
     /** End Getter/Setter methods */
 
 
