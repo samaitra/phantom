@@ -6,6 +6,7 @@ import com.github.jmpjct.mysql.proto.Flags;
 import com.github.jmpjct.mysql.proto.Packet;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
+import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelEvent;
 import org.jboss.netty.channel.MessageEvent;
 
@@ -45,7 +46,7 @@ public class MysqlNettyChannelBuffer extends Packet{
             buffer.add(packet);
 
             if (!bufferResultSet) {
-                MysqlNettyChannelBuffer.write(messageEvent, buffer);
+                MysqlNettyChannelBuffer.write(messageEvent.getChannel(), buffer);
                 buffer.clear();
             }
         }
@@ -77,7 +78,7 @@ public class MysqlNettyChannelBuffer extends Packet{
                 buffer.add(packedPacket);
 
                 if (!bufferResultSet) {
-                    MysqlNettyChannelBuffer.write(messageEvent, buffer);
+                    MysqlNettyChannelBuffer.write(messageEvent.getChannel(), buffer);
                     buffer.clear();
                 }
 
@@ -94,7 +95,7 @@ public class MysqlNettyChannelBuffer extends Packet{
         buffer.add(packedPacket);
 
         if (!bufferResultSet) {
-            MysqlNettyChannelBuffer.write(messageEvent, buffer);
+            MysqlNettyChannelBuffer.write(messageEvent.getChannel(), buffer);
             buffer.clear();
         }
 
@@ -109,29 +110,16 @@ public class MysqlNettyChannelBuffer extends Packet{
         return buffer;
     }
 
-    /**
-     *  Writes all the output bytes into the output ChannelBuffer
-     *
-     */
-    public static void write(MessageEvent messageEvent, ArrayList<byte[]> buffer) {
-
-        for (byte[] packet: buffer) {
-            ChannelBuffer cb = ChannelBuffers.copiedBuffer(packet);
-            messageEvent.getChannel().write(cb);
-
-        }
-    }
 
     /**
      *  Writes all the output bytes into the output ChannelBuffer
      *
      */
-    public static void write(ChannelEvent event, ArrayList<byte[]> buffer) {
+    public static void write(Channel channel, ArrayList<byte[]> buffer) {
 
         for (byte[] packet: buffer) {
             ChannelBuffer cb = ChannelBuffers.copiedBuffer(packet);
-            event.getChannel().write(cb);
-
+            channel.write(cb);
         }
     }
 

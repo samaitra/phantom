@@ -46,6 +46,7 @@ public class MysqlPacketDecoder extends FrameDecoder {
         do {
             b = in.read(packet, offset, (target - offset));
             if (b == -1) {
+              buf.resetReaderIndex();
               return null;
             }
             offset += b;
@@ -62,6 +63,7 @@ public class MysqlPacketDecoder extends FrameDecoder {
         do {
             b = in.read(packet, offset, (target - offset));
             if (b == -1) {
+                buf.resetReaderIndex();
                 return null;
             }
             offset += b;

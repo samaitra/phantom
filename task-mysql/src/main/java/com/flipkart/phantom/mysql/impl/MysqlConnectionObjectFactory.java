@@ -53,6 +53,8 @@ public class MysqlConnectionObjectFactory implements PoolableObjectFactory<Mysql
     public void destroyObject(MysqlConnection conn) throws Exception {
         LOGGER.info("Closing a mysql connection for server : {} at port : {}", this.getMysqlProxy().getHost(), this.getMysqlProxy().getPort());
         conn.mysqlSocket.close();
+        conn.mysqlOut.close();
+        conn.mysqlIn.close();
     }
 
     /**
