@@ -1,3 +1,6 @@
+## 1.2.5 (January 06, 2014)
+- Better fallback handling in Thrift and Http proxies, empty response for timeout Http requests
+
 ## 1.2.3 (December 27, 2013)
 - Changed command name being published for Thrift Handlers. Uncommented sending of profiling metrics.
 
